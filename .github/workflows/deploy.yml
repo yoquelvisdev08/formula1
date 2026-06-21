@@ -31,6 +31,9 @@ jobs:
         run: npm ci
 
       - name: Build site
+        env:
+          ASTRO_BASE: /formula1
+          ASTRO_SITE: https://yoquelvisdev08.github.io
         run: npm run build
 
       - name: Upload artifact

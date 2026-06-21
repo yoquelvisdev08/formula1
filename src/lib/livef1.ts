@@ -6,7 +6,7 @@
  * so this client just does cached fetches against the same origin.
  */
 
-const BASE = "/data/livef1";
+const BASE = `${import.meta.env.BASE_URL}data/livef1`;
 
 export const LIVEF1_SCHEMA = 1;
 
