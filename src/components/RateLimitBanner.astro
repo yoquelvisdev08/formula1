@@ -1,0 +1,112 @@
+---
+/**
+ * Floating banner that surfaces the OpenF1 rate-limit backoff window.
+ * The script subscribes to the global request queue and shows the banner
+ * for as long as we're throttled.
+ */
+---
+
+<div id="rate-banner" class="rate-banner" data-state="idle" role="status" aria-live="polite">
+  <span class="rate-banner__dot"></span>
+  <div class="rate-banner__body">
+    <div class="rate-banner__title">API rate-limited</div>
+    <div class="rate-banner__sub">
+      Pausing requests · resumes in <span id="rate-banner-count">—</span>
+    </div>
+  </div>
+</div>
+
+<style>
+  .rate-banner {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: rgba(20, 20, 20, 0.92);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 210, 0, 0.4);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    color: #ffd200;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+    opacity: 0;
+    transform: translateY(12px);
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    max-width: 320px;
+  }
+  .rate-banner[data-state="active"] {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .rate-banner__dot {
+    width: 10px;
+    height: 10px;
+    background: #ffd200;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 0 rgba(255, 210, 0, 0.6);
+    animation: rate-pulse 1.4s ease-out infinite;
+  }
+  @keyframes rate-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 210, 0, 0.6); }
+    100% { box-shadow: 0 0 0 12px rgba(255, 210, 0, 0); }
+  }
+  .rate-banner__title {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: #ffd200;
+  }
+  .rate-banner__sub {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #af8781;
+    margin-top: 2px;
+  }
+  #rate-banner-count {
+    color: #fff;
+    font-weight: 700;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rate-banner__dot { animation: none; }
+  }
+</style>
+
+<script>
+  import { requestQueue } from "../lib/openf1/queue";
+
+  const banner = document.getElementById("rate-banner");
+  const counter = document.getElementById("rate-banner-count");
+
+  let interval: ReturnType<typeof setInterval> | null = null;
+
+  function update(ms: number): void {
+    if (!banner || !counter) return;
+    if (ms <= 0) {
+      banner.setAttribute("data-state", "idle");
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+      return;
+    }
+    banner.setAttribute("data-state", "active");
+    counter.textContent = `${Math.ceil(ms / 1000)}s`;
+    if (!interval) {
+      interval = setInterval(() => {
+        const remaining = requestQueue.remaining();
+        update(remaining);
+      }, 500);
+    }
+  }
+
+  requestQueue.onBackoffChange(update);
+</script>

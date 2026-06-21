@@ -1,0 +1,34 @@
+---
+interface Props {
+  label: string;
+  value: string | number;
+  unit?: string;
+  tone?: "default" | "red" | "blue" | "yellow";
+  mono?: boolean;
+  class?: string;
+}
+
+const {
+  label,
+  value,
+  unit,
+  tone = "default",
+  mono = true,
+  class: className = "",
+} = Astro.props;
+
+const tones = {
+  default: "text-fg",
+  red: "text-racing",
+  blue: "text-electric",
+  yellow: "text-warning",
+};
+---
+
+<div class:list={["flex flex-col gap-1", className]}>
+  <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">{label}</span>
+  <span class:list={["font-display text-2xl font-bold leading-none tabular-nums", tones[tone], mono && "font-mono"]}>
+    {value}
+    {unit && <span class="text-fg-subtle text-sm ml-1 font-mono">{unit}</span>}
+  </span>
+</div>

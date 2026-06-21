@@ -1,0 +1,190 @@
+---
+import Base from "../layouts/Base.astro";
+import Skeleton from "../components/ui/Skeleton.astro";
+import ErrorState from "../components/ErrorState.astro";
+
+const currentYear = new Date().getFullYear();
+const years = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3];
+---
+
+<Base title="Season Calendar · Velocity Prime" active="calendar">
+  <section class="pt-10 pb-8">
+    <div class="flex items-end justify-between flex-wrap gap-6">
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="h-3 w-[2px] bg-racing"></span>
+          <span class="font-mono text-[11px] uppercase tracking-[0.3em] text-racing">Calendar</span>
+        </div>
+        <h1 class="font-display text-5xl md:text-7xl font-extrabold uppercase tracking-tight leading-none">
+          <span class="block text-fg-muted text-2xl md:text-3xl font-bold mb-2" id="year-display">{currentYear}</span>
+          F1 <span class="text-racing">Season</span>
+        </h1>
+        <p class="mt-3 text-sm text-fg-muted max-w-xl">
+          Every race weekend. Practice through chequered flag. Track every round,
+          countdown to lights out, and dive into past results.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-1 border border-track bg-surface-low" role="tablist">
+        {years.map((y) => (
+          <button
+            data-year={y}
+            class:list={[
+              "year-tab px-4 py-2 font-mono text-xs uppercase tracking-[0.2em] transition-colors",
+              y === currentYear ? "bg-racing text-white" : "text-fg-subtle hover:text-fg",
+            ]}
+            type="button"
+          >{y}</button>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12" id="meetings-grid">
+    <Skeleton rows={6} height="h-48" />
+  </section>
+
+  <div id="calendar-error" class="hidden"><ErrorState /></div>
+</Base>
+
+<script>
+  import { getSchedule } from "../lib/jolpica";
+  import { formatDate, formatCountdown, flagImgFromCountry } from "../lib/format";
+  import { swr } from "../lib/cache";
+  import { staggerReveal, attachTilt } from "../lib/anim";
+  import type { JolpicaRace } from "../lib/jolpica";
+
+  function isoFromRace(race: JolpicaRace): string {
+    const time = race.time ?? "00:00:00Z";
+    return `${race.date}T${time}`;
+  }
+
+  function endIsoFromRace(race: JolpicaRace): string {
+    // Race itself is the latest session; treat end as +3 hours from start
+    const start = new Date(isoFromRace(race)).getTime();
+    return new Date(start + 3 * 60 * 60_000).toISOString();
+  }
+
+  async function loadYear(year: number): Promise<void> {
+    const grid = document.getElementById("meetings-grid");
+    const errorBox = document.getElementById("calendar-error");
+    if (!grid) return;
+    grid.innerHTML = `<div class="col-span-full"><div class="h-48 bg-surface-low border border-track/60 scan"></div></div>`;
+
+    function render(races: JolpicaRace[]): void {
+      if (!grid) return;
+      const now = Date.now();
+      grid.innerHTML = "";
+      if (!races.length) {
+        grid.innerHTML = `<p class="col-span-full text-sm text-fg-subtle font-mono">No races found for ${year}.</p>`;
+        return;
+      }
+      for (const race of races) {
+        const startIso = isoFromRace(race);
+        const start = Date.parse(startIso);
+        const end = Date.parse(endIsoFromRace(race));
+        const country = race.Circuit.Location.country;
+        const flag = flagImgFromCountry(country, { size: "2.5rem" });
+
+        let status: "live" | "upcoming" | "completed" = "upcoming";
+        let statusLabel = formatCountdown(startIso);
+        let statusClass = "border border-electric/60 text-electric bg-electric/10";
+        if (now > end) {
+          status = "completed";
+          statusLabel = "Completed";
+          statusClass = "border border-track text-fg-subtle bg-surface-low";
+        } else if (now >= start && now <= end) {
+          status = "live";
+          statusLabel = "Live Now";
+          statusClass = "bg-racing text-white pulse-live";
+        }
+
+        const card = document.createElement("a");
+        card.href = `/races/${race.round}`;
+        card.className = "reveal lift racing-stripe tilt group block border border-track bg-carbon hover:border-racing transition-colors clip-chamfer-tr";
+        card.dataset.tilt = "";
+        card.dataset.status = status;
+        card.innerHTML = `
+          <div class="relative px-5 py-5 border-b border-track/50 flex items-start justify-between gap-4">
+            <div class="absolute left-0 top-0 bottom-0 w-[3px] ${status === "live" ? "bg-racing" : status === "upcoming" ? "bg-electric" : "bg-track-light"}"></div>
+            <div class="flex flex-col gap-1 items-start min-w-0">
+              <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">Round ${race.round}</span>
+              <div class="flex items-center gap-3">
+                ${flag}
+                <div class="flex flex-col leading-tight">
+                  <span class="font-display text-lg font-extrabold uppercase tracking-tight">${country}</span>
+                  <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">${race.Circuit.Location.locality}</span>
+                </div>
+              </div>
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.2em] shrink-0 ${statusClass}">
+              ${statusLabel}
+            </span>
+          </div>
+          <div class="p-5">
+            <div class="font-display text-xl font-extrabold uppercase tracking-tight leading-tight">${race.raceName}</div>
+            <div class="font-mono text-[11px] text-fg-subtle mt-1">${race.Circuit.circuitName}</div>
+            <div class="mt-4 pt-4 border-t border-track/40 flex items-center justify-between text-xs">
+              <span class="font-mono text-fg-subtle">${formatDate(startIso)}</span>
+              <span class="font-mono uppercase tracking-[0.2em] text-fg-muted">${sessionCount(race)} sessions</span>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      }
+      staggerReveal(grid.querySelectorAll<HTMLElement>(".reveal"), { delay: 40, stagger: 60 });
+      grid.querySelectorAll<HTMLElement>("[data-tilt]").forEach((el) => attachTilt(el, 5));
+      errorBox?.classList.add("hidden");
+    }
+
+    function sessionCount(race: JolpicaRace): number {
+      let c = 1; // race itself
+      if (race.FirstPractice) c++;
+      if (race.SecondPractice) c++;
+      if (race.ThirdPractice) c++;
+      if (race.Qualifying) c++;
+      if (race.Sprint) c++;
+      if (race.SprintQualifying || race.SprintShootout) c++;
+      return c;
+    }
+
+    try {
+      await swr(() => getSchedule(year), {
+        key: `calendar:${year}`,
+        onCached: render,
+        onFresh: render,
+        onError: (err) => {
+          console.error("[calendar] fetch failed", err);
+        },
+      });
+    } catch (err) {
+      console.error("[calendar] failed", err);
+      grid.classList.add("hidden");
+      errorBox?.classList.remove("hidden");
+    }
+  }
+
+  function setActiveYear(year: number): void {
+    document.querySelectorAll<HTMLElement>(".year-tab").forEach((btn) => {
+      const y = Number(btn.dataset.year);
+      if (y === year) {
+        btn.classList.add("bg-racing", "text-white");
+        btn.classList.remove("text-fg-subtle");
+      } else {
+        btn.classList.remove("bg-racing", "text-white");
+        btn.classList.add("text-fg-subtle");
+      }
+    });
+    document.getElementById("year-display")!.textContent = String(year);
+  }
+
+  document.querySelectorAll<HTMLElement>(".year-tab").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const y = Number(btn.dataset.year);
+      setActiveYear(y);
+      loadYear(y);
+    });
+  });
+
+  loadYear(new Date().getFullYear());
+</script>

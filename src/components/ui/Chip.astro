@@ -1,0 +1,34 @@
+---
+interface Props {
+  tone?: "default" | "red" | "blue" | "yellow" | "success" | "live";
+  size?: "sm" | "md";
+  class?: string;
+}
+
+const { tone = "default", size = "sm", class: className = "" } = Astro.props;
+
+const tones = {
+  default: "border-track text-fg-muted bg-surface-low",
+  red: "border-racing/60 text-racing bg-racing/10",
+  blue: "border-electric/60 text-electric bg-electric/10",
+  yellow: "border-warning/60 text-warning bg-warning/10",
+  success: "border-success/60 text-success bg-success/10",
+  live: "border-racing text-white bg-racing pulse-live",
+};
+
+const sizes = {
+  sm: "px-2 py-0.5 text-[10px]",
+  md: "px-3 py-1 text-xs",
+};
+---
+
+<span
+  class:list={[
+    "inline-flex items-center gap-1 border font-mono uppercase tracking-[0.2em] whitespace-nowrap",
+    tones[tone],
+    sizes[size],
+    className,
+  ]}
+>
+  <slot />
+</span>

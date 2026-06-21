@@ -1,0 +1,624 @@
+---
+import Base from "../layouts/Base.astro";
+import Card from "../components/ui/Card.astro";
+import Chip from "../components/ui/Chip.astro";
+import Button from "../components/ui/Button.astro";
+import LiveBadge from "../components/ui/LiveBadge.astro";
+import SectionHeader from "../components/ui/SectionHeader.astro";
+import Skeleton from "../components/ui/Skeleton.astro";
+import F1Lights from "../components/F1Lights.astro";
+---
+
+<Base title="Velocity Prime — Formula 1, decoded" active="dashboard">
+  <F1Lights />
+
+  <!-- ============================================================
+       HERO — Next race or live session
+       ============================================================ -->
+  <section class="relative pt-10 pb-12">
+    <div class="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+      <div class="absolute -top-20 right-0 h-[400px] w-[600px] bg-racing/10 blur-3xl"></div>
+      <div class="absolute top-40 left-0 h-[300px] w-[400px] bg-electric/10 blur-3xl"></div>
+    </div>
+
+    <div class="flex flex-col gap-6 reveal" data-reveal-step="0">
+      <div id="hero-meta" class="flex items-center gap-3 flex-wrap">
+        <Chip tone="red" size="md"><span id="round-chip">—</span></Chip>
+        <Chip tone="default" size="md"><span id="session-chip">Next round</span></Chip>
+        <span id="live-indicator" class="hidden"><LiveBadge /></span>
+      </div>
+
+      <h1 class="font-display text-5xl md:text-7xl font-extrabold leading-none tracking-tight uppercase">
+        <span class="block text-fg-muted text-2xl md:text-3xl font-bold mb-2" id="country-name">Loading…</span>
+        <span class="block cursor-blink" id="race-name">Grand Prix</span>
+      </h1>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 max-w-3xl">
+        <div class="border-l-2 border-racing pl-4 reveal" data-reveal-step="1">
+          <div class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">Circuit</div>
+          <div class="font-display text-base uppercase font-bold leading-tight" id="circuit-name">—</div>
+        </div>
+        <div class="border-l-2 border-electric pl-4 reveal" data-reveal-step="2">
+          <div class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">Lights Out</div>
+          <div class="font-display text-base uppercase font-bold leading-tight" id="race-date">—</div>
+        </div>
+        <div class="border-l-2 border-warning pl-4 reveal" data-reveal-step="3">
+          <div class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">Countdown</div>
+          <div class="font-display text-xl uppercase font-extrabold leading-tight tabular-nums text-warning" id="countdown">—</div>
+        </div>
+        <div class="border-l-2 border-fg-subtle pl-4 reveal" data-reveal-step="4">
+          <div class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">Season Progress</div>
+          <div class="font-display text-base uppercase font-bold leading-tight" id="season-progress">—</div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-3 mt-2 reveal" data-reveal-step="5">
+        <Button href="/calendar" variant="primary" class="racing-stripe">Full Season Calendar →</Button>
+        <Button href="/standings" variant="ghost">Championship Standings</Button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       RACE WEEKEND — every session of the upcoming round
+       ============================================================ -->
+  <section class="mb-12 reveal" id="weekend-section">
+    <SectionHeader
+      eyebrow="Race Weekend"
+      title="The Schedule"
+      description="Every session of the upcoming Grand Prix. Times shown in your local timezone."
+    />
+    <div id="weekend-grid" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <Skeleton rows={4} height="h-28" />
+    </div>
+  </section>
+
+  <!-- ============================================================
+       CHAMPIONSHIP LEADERS
+       ============================================================ -->
+  <section class="grid gap-6 lg:grid-cols-[2fr_1fr] mb-12">
+    <div class="reveal" data-reveal-step="6">
+      <Card title="Championship Leaders" subtitle="Drivers' standings" accent="red">
+        <div slot="actions">
+          <a href="/standings" class="font-mono text-[10px] uppercase tracking-[0.2em] text-electric hover:text-fg">View full →</a>
+        </div>
+        <div id="championship-top">
+          <Skeleton rows={5} height="h-12" />
+        </div>
+      </Card>
+    </div>
+
+    <div class="reveal" data-reveal-step="7">
+      <Card title="Constructors" subtitle="Top of the tree" accent="blue">
+        <div slot="actions">
+          <a href="/standings" class="font-mono text-[10px] uppercase tracking-[0.2em] text-electric hover:text-fg">All teams →</a>
+        </div>
+        <div id="constructor-top">
+          <Skeleton rows={4} height="h-12" />
+        </div>
+      </Card>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       LAST RACE — podium + results
+       ============================================================ -->
+  <section class="mb-12 reveal" data-reveal-step="8">
+    <SectionHeader eyebrow="Last Round" title="The Result" description="">
+      <div slot="actions">
+        <a id="last-race-link" href="/calendar" class="font-mono text-[10px] uppercase tracking-[0.2em] text-electric hover:text-fg">Race detail →</a>
+      </div>
+    </SectionHeader>
+
+    <div id="podium-strip" class="grid grid-cols-3 gap-3 mb-6">
+      <div class="h-32 bg-surface-low border border-track/60 scan"></div>
+      <div class="h-32 bg-surface-low border border-track/60 scan"></div>
+      <div class="h-32 bg-surface-low border border-track/60 scan"></div>
+    </div>
+
+    <div id="last-race-table">
+      <Skeleton rows={5} height="h-10" />
+    </div>
+  </section>
+
+  <!-- ============================================================
+       UPCOMING SCHEDULE
+       ============================================================ -->
+  <section class="mb-12 reveal" data-reveal-step="9">
+    <SectionHeader eyebrow="Schedule" title="What's Next" description="The next race weekends on the calendar.">
+      <div slot="actions">
+        <Button href="/calendar" variant="ghost" size="sm">Full calendar →</Button>
+      </div>
+    </SectionHeader>
+    <div id="upcoming-sessions" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <Skeleton rows={3} height="h-28" />
+    </div>
+  </section>
+</Base>
+
+<script>
+  import {
+    getSchedule,
+    getDriverStandings,
+    getConstructorStandings,
+    getRaceResults,
+    teamColourFor,
+  } from "../lib/jolpica";
+  import type { JolpicaRace, DriverStanding, ConstructorStanding } from "../lib/jolpica";
+  import { swr } from "../lib/cache";
+  import { countUp, staggerReveal, attachTilt } from "../lib/anim";
+  import { formatDate, formatCountdown, formatDateTime, formatTime, flagImgFromCountry } from "../lib/format";
+  import { photoMarkup, hydratePhotos } from "../lib/wiki";
+
+  const LIGHTS_MIN_DURATION = 2_800;
+  const startTime = Date.now();
+
+  function dismissLights(): void {
+    const lights = document.getElementById("f1-lights");
+    if (!lights) return;
+    const elapsed = Date.now() - startTime;
+    const wait = Math.max(LIGHTS_MIN_DURATION - elapsed, 0);
+    setTimeout(() => {
+      lights.setAttribute("data-state", "lights-out");
+      setTimeout(() => lights.setAttribute("data-state", "done"), 280);
+    }, wait);
+  }
+
+  function isoFromRace(r: JolpicaRace): string {
+    return `${r.date}T${r.time ?? "00:00:00Z"}`;
+  }
+
+  function nextRaceFrom(races: JolpicaRace[]): { upcoming: JolpicaRace | null; index: number; total: number } {
+    const now = Date.now();
+    const sorted = [...races].sort((a, b) => Date.parse(isoFromRace(a)) - Date.parse(isoFromRace(b)));
+    const idx = sorted.findIndex((r) => Date.parse(isoFromRace(r)) > now);
+    return { upcoming: idx >= 0 ? sorted[idx] : null, index: idx, total: sorted.length };
+  }
+
+  function renderHero(races: JolpicaRace[]): void {
+    const { upcoming, index, total } = nextRaceFrom(races);
+    if (!upcoming) {
+      const last = races[races.length - 1];
+      if (last) {
+        document.getElementById("round-chip")!.textContent = `R${last.round}`;
+        document.getElementById("session-chip")!.textContent = "Season finale";
+        const lastFlag = flagImgFromCountry(last.Circuit.Location.country, { size: "1.4em" });
+        document.getElementById("country-name")!.innerHTML = `${lastFlag} ${last.Circuit.Location.country}`;
+        document.getElementById("race-name")!.textContent = last.raceName;
+        document.getElementById("circuit-name")!.textContent = last.Circuit.circuitName;
+        document.getElementById("race-date")!.textContent = formatDate(last.date);
+        document.getElementById("countdown")!.textContent = "Off-season";
+        document.getElementById("season-progress")!.textContent = `${total}/${total}`;
+      }
+      return;
+    }
+
+    document.getElementById("round-chip")!.textContent = `R${upcoming.round}`;
+    document.getElementById("session-chip")!.textContent = "Next round";
+    const country = upcoming.Circuit.Location.country;
+    const flag = flagImgFromCountry(country, { size: "1.4em" });
+    document.getElementById("country-name")!.innerHTML = `${flag} ${country}`;
+    document.getElementById("race-name")!.textContent = upcoming.raceName;
+    document.getElementById("circuit-name")!.textContent = upcoming.Circuit.circuitName;
+    document.getElementById("race-date")!.textContent = formatDateTime(isoFromRace(upcoming));
+    document.getElementById("countdown")!.textContent = formatCountdown(isoFromRace(upcoming));
+    document.getElementById("season-progress")!.textContent = `${index}/${total}`;
+
+    // Refresh the countdown every 30s
+    setInterval(() => {
+      document.getElementById("countdown")!.textContent = formatCountdown(isoFromRace(upcoming));
+    }, 30_000);
+  }
+
+  interface WeekendSession {
+    name: string;
+    short: string;
+    description: string;
+    date: string;
+    time?: string;
+    accent: "blue" | "yellow" | "red" | "default";
+  }
+
+  function buildWeekendSessions(race: JolpicaRace): WeekendSession[] {
+    const sessions: WeekendSession[] = [];
+    if (race.FirstPractice) sessions.push({
+      name: "Free Practice 1", short: "FP1", accent: "default",
+      description: "Teams unpack and learn the track — long-run setup work.",
+      date: race.FirstPractice.date, time: race.FirstPractice.time,
+    });
+    if (race.SecondPractice) sessions.push({
+      name: "Free Practice 2", short: "FP2", accent: "default",
+      description: "Race-fuel runs and tyre-deg testing. The most representative practice.",
+      date: race.SecondPractice.date, time: race.SecondPractice.time,
+    });
+    if (race.ThirdPractice) sessions.push({
+      name: "Free Practice 3", short: "FP3", accent: "default",
+      description: "Final hour to nail the car before quali — short low-fuel runs.",
+      date: race.ThirdPractice.date, time: race.ThirdPractice.time,
+    });
+    if (race.SprintQualifying ?? race.SprintShootout) {
+      const sq = race.SprintQualifying ?? race.SprintShootout!;
+      sessions.push({
+        name: "Sprint Qualifying", short: "SQ", accent: "blue",
+        description: "Sets the grid for the Saturday Sprint. Three knockout segments.",
+        date: sq.date, time: sq.time,
+      });
+    }
+    if (race.Sprint) sessions.push({
+      name: "Sprint Race", short: "SPR", accent: "blue",
+      description: "100km flat-out race. Points to top 8 — no mandatory pit stop.",
+      date: race.Sprint.date, time: race.Sprint.time,
+    });
+    if (race.Qualifying) sessions.push({
+      name: "Qualifying", short: "QUAL", accent: "yellow",
+      description: "Q1 → Q2 → Q3. The fastest lap on Saturday earns pole position.",
+      date: race.Qualifying.date, time: race.Qualifying.time,
+    });
+    sessions.push({
+      name: "Grand Prix", short: "RACE", accent: "red",
+      description: "Lights out. The only result that pays championship points to the top 10.",
+      date: race.date, time: race.time,
+    });
+    return sessions;
+  }
+
+  function renderWeekend(races: JolpicaRace[]): void {
+    const grid = document.getElementById("weekend-grid");
+    if (!grid) return;
+    const now = Date.now();
+    // Pick the next race that hasn't finished yet (last session = race itself).
+    const sorted = [...races].sort((a, b) => Date.parse(isoFromRace(a)) - Date.parse(isoFromRace(b)));
+    const target =
+      sorted.find((r) => Date.parse(isoFromRace(r)) + 3 * 60 * 60_000 > now) ??
+      sorted[sorted.length - 1];
+    if (!target) {
+      grid.innerHTML = `<p class="text-sm text-fg-subtle font-mono col-span-full">No race scheduled.</p>`;
+      return;
+    }
+
+    const sessions = buildWeekendSessions(target);
+    grid.innerHTML = "";
+
+    const accentBorder = {
+      red: "border-racing/50",
+      blue: "border-electric/50",
+      yellow: "border-warning/50",
+      default: "border-track",
+    };
+    const accentBar = {
+      red: "bg-racing",
+      blue: "bg-electric",
+      yellow: "bg-warning",
+      default: "bg-track-light",
+    };
+    const accentText = {
+      red: "text-racing",
+      blue: "text-electric",
+      yellow: "text-warning",
+      default: "text-fg-subtle",
+    };
+
+    for (const s of sessions) {
+      const iso = `${s.date}T${s.time ?? "00:00:00Z"}`;
+      const start = Date.parse(iso);
+      // Assume ~90 minutes for practices, 60 for quali, 120 for sprint, 180 for race
+      const durationMs = s.short === "RACE" ? 3 * 60 * 60_000
+        : s.short === "SPR" ? 2 * 60 * 60_000
+        : 90 * 60_000;
+      const end = start + durationMs;
+
+      let status: "live" | "upcoming" | "completed";
+      let statusLabel: string;
+      if (now > end) {
+        status = "completed";
+        statusLabel = "Done";
+      } else if (now >= start && now <= end) {
+        status = "live";
+        statusLabel = "LIVE NOW";
+      } else {
+        status = "upcoming";
+        statusLabel = formatCountdown(iso);
+      }
+
+      const card = document.createElement("div");
+      card.className = `reveal lift relative border bg-carbon clip-chamfer-tr ${accentBorder[s.accent]} ${status === "completed" ? "opacity-60" : ""}`;
+      card.innerHTML = `
+        <div class="absolute left-0 top-0 bottom-0 w-[3px] ${accentBar[s.accent]}"></div>
+        ${status === "live" ? `<div class="absolute top-2 right-2"><span class="live-dot"></span></div>` : ""}
+        <div class="p-4">
+          <div class="flex items-baseline justify-between gap-2 mb-1">
+            <span class="font-mono text-[10px] uppercase tracking-[0.25em] ${accentText[s.accent]}">${s.short}</span>
+            <span class="font-mono text-[10px] uppercase tracking-[0.2em] ${status === "live" ? "text-racing font-bold" : "text-fg-subtle"}">${statusLabel}</span>
+          </div>
+          <div class="font-display text-lg font-extrabold uppercase tracking-tight leading-tight">${s.name}</div>
+          <div class="mt-2 font-mono text-xs text-fg-muted leading-snug">${s.description}</div>
+          <div class="mt-3 pt-3 border-t border-track/40 flex items-center justify-between text-xs">
+            <span class="font-mono text-fg-subtle">${formatDate(iso)}</span>
+            <span class="font-mono font-bold tabular-nums">${formatTime(iso)}</span>
+          </div>
+        </div>
+      `;
+      grid.appendChild(card);
+    }
+    staggerReveal(grid.querySelectorAll<HTMLElement>(".reveal"), { delay: 40, stagger: 60 });
+  }
+
+  function renderChampionship(standings: DriverStanding[]): void {
+    const wrap = document.getElementById("championship-top");
+    if (!wrap) return;
+    if (!standings.length) {
+      wrap.innerHTML = `<p class="text-sm text-fg-subtle font-mono">Standings unavailable.</p>`;
+      return;
+    }
+    const max = Number(standings[0].points) || 1;
+    wrap.innerHTML = "";
+    for (const s of standings.slice(0, 6)) {
+      const team = s.Constructors[0];
+      const color = teamColourFor(team?.constructorId);
+      const isLeader = s.position === "1";
+      const positionStyle = isLeader ? `color:${color}` : "";
+      const initials = (s.Driver.code ?? `${s.Driver.givenName.charAt(0)}${s.Driver.familyName.charAt(0)}`).toUpperCase();
+      const a = document.createElement("a");
+      a.href = `/drivers/${s.Driver.driverId}`;
+      a.className = "reveal racing-stripe lift flex items-center gap-3 px-3 py-3 border-b border-track/40 hover:bg-surface-low transition-colors";
+      a.innerHTML = `
+        <span class="w-8 font-display text-2xl font-extrabold ${isLeader ? "" : "text-fg-muted"} tabular-nums" style="${positionStyle}">${s.position}</span>
+        ${photoMarkup({ wikiUrl: s.Driver.url, initials, color, size: "sm" })}
+        <div class="flex-1 min-w-0">
+          <div class="font-display font-bold text-base uppercase tracking-tight truncate">${s.Driver.givenName} ${s.Driver.familyName}</div>
+          <div class="flex items-center gap-2 mt-0.5">
+            <span class="font-mono text-[10px] uppercase tracking-[0.2em] truncate" style="color:${color}">${team?.name ?? "—"}</span>
+            ${Number(s.wins) > 0 ? `<span class="font-mono text-[10px] uppercase tracking-[0.2em] text-warning">★${s.wins}</span>` : ""}
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="font-display text-2xl font-extrabold tabular-nums champ-pts" data-pts="${s.points}">0</div>
+          <div class="font-mono text-[9px] uppercase tracking-[0.2em] text-fg-subtle">${((Number(s.points) / max) * 100).toFixed(0)}%</div>
+        </div>
+      `;
+      wrap.appendChild(a);
+    }
+    staggerReveal(wrap.querySelectorAll<HTMLElement>(".reveal"), { delay: 60, stagger: 60 });
+    setTimeout(() => {
+      wrap.querySelectorAll<HTMLElement>(".champ-pts").forEach((el) => {
+        const target = Number(el.dataset.pts);
+        countUp(el, target, { duration: 800 });
+      });
+    }, 200);
+    hydratePhotos(wrap);
+  }
+
+  function renderConstructorTop(standings: ConstructorStanding[]): void {
+    const wrap = document.getElementById("constructor-top");
+    if (!wrap) return;
+    if (!standings.length) {
+      wrap.innerHTML = `<p class="text-sm text-fg-subtle font-mono">Standings unavailable.</p>`;
+      return;
+    }
+    const max = Number(standings[0].points) || 1;
+    wrap.innerHTML = "";
+    for (const s of standings.slice(0, 5)) {
+      const color = teamColourFor(s.Constructor.constructorId);
+      const fillPct = (Number(s.points) / max) * 100;
+      const isLeader = s.position === "1";
+      const div = document.createElement("div");
+      div.className = "reveal py-2.5 border-b border-track/40";
+      div.innerHTML = `
+        <div class="flex items-center justify-between mb-1.5">
+          <div class="flex items-center gap-2">
+            <span class="font-display text-base font-extrabold tabular-nums w-6" style="${isLeader ? `color:${color}` : ""}">${s.position}</span>
+            <span class="font-display font-bold text-sm uppercase tracking-tight" style="color:${color}">${s.Constructor.name}</span>
+          </div>
+          <span class="font-display text-lg font-extrabold tabular-nums team-pts" data-pts="${s.points}">0</span>
+        </div>
+        <div class="h-1 bg-surface-low overflow-hidden">
+          <div class="h-full" style="width:${fillPct.toFixed(1)}%; background:${color};"></div>
+        </div>
+      `;
+      wrap.appendChild(div);
+    }
+    staggerReveal(wrap.querySelectorAll<HTMLElement>(".reveal"), { delay: 100, stagger: 80 });
+    setTimeout(() => {
+      wrap.querySelectorAll<HTMLElement>(".team-pts").forEach((el) => {
+        const target = Number(el.dataset.pts);
+        countUp(el, target, { duration: 800 });
+      });
+    }, 250);
+  }
+
+  function renderLastRace(race: JolpicaRace | null): void {
+    const podiumEl = document.getElementById("podium-strip");
+    const tableEl = document.getElementById("last-race-table");
+    const linkEl = document.getElementById("last-race-link") as HTMLAnchorElement | null;
+    if (!podiumEl || !tableEl) return;
+
+    if (!race || !race.Results?.length) {
+      podiumEl.innerHTML = `<p class="col-span-3 text-sm text-fg-subtle font-mono">No race results yet this season.</p>`;
+      tableEl.innerHTML = "";
+      return;
+    }
+
+    if (linkEl) linkEl.href = `/races/${race.round}`;
+
+    // Podium 2-1-3 layout for visual stage
+    const podium = race.Results.slice(0, 3);
+    const arranged = [podium[1], podium[0], podium[2]].filter(Boolean);
+    const heights = ["min-h-[180px]", "min-h-[220px]", "min-h-[160px]"];
+    podiumEl.innerHTML = "";
+    arranged.forEach((r, idx) => {
+      const color = teamColourFor(r.Constructor.constructorId);
+      const position = r.position;
+      const isWinner = position === "1";
+      const initials = (r.Driver.code ?? `${r.Driver.givenName.charAt(0)}${r.Driver.familyName.charAt(0)}`).toUpperCase();
+      const card = document.createElement("div");
+      card.className = `reveal lift relative flex flex-col items-center text-center justify-end border bg-carbon p-4 clip-chamfer-tr ${heights[idx]}`;
+      card.style.borderColor = isWinner ? color : "#2f3131";
+      card.innerHTML = `
+        <div class="absolute top-0 left-0 right-0 h-1" style="background:${color}"></div>
+        <div class="absolute top-3 left-3 font-display text-4xl font-extrabold tabular-nums" style="color:${isWinner ? color : '#6f7070'}">${position}</div>
+        ${photoMarkup({ wikiUrl: r.Driver.url, initials, color, size: isWinner ? "lg" : "md", class: "mx-auto mb-3" })}
+        <div class="font-display text-base font-bold uppercase tracking-tight leading-tight">${r.Driver.givenName.charAt(0)}. ${r.Driver.familyName}</div>
+        <div class="font-mono text-[10px] uppercase tracking-[0.2em] mt-1" style="color:${color}">${r.Constructor.name}</div>
+        <div class="mt-2 font-mono text-xs text-fg-subtle tabular-nums">${r.Time?.time ?? r.status} · +${r.points}pts</div>
+      `;
+      podiumEl.appendChild(card);
+    });
+    staggerReveal(podiumEl.querySelectorAll<HTMLElement>(".reveal"), { delay: 60, stagger: 120 });
+    hydratePhotos(podiumEl);
+
+    // Full top-10 table
+    let html = `
+      <div class="border border-track bg-carbon clip-chamfer-tr overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-[10px] font-mono uppercase tracking-[0.2em] text-fg-subtle border-b border-track">
+            <tr>
+              <th class="text-left px-3 py-3 w-12">Pos</th>
+              <th class="text-left px-3 py-3">Driver</th>
+              <th class="text-left px-3 py-3 hidden md:table-cell">Constructor</th>
+              <th class="text-right px-3 py-3">Time / Status</th>
+              <th class="text-right px-3 py-3 w-16">Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    for (const r of race.Results.slice(0, 10)) {
+      const color = teamColourFor(r.Constructor.constructorId);
+      const initials = (r.Driver.code ?? `${r.Driver.givenName.charAt(0)}${r.Driver.familyName.charAt(0)}`).toUpperCase();
+      const isWinner = r.position === "1";
+      html += `
+        <tr class="border-b border-track/30 hover:bg-surface-low/60 reveal">
+          <td class="px-3 py-2.5">
+            <div class="flex items-center gap-2">
+              <span class="w-1 h-6" style="background:${color}"></span>
+              <span class="font-display font-extrabold text-lg tabular-nums ${isWinner ? "" : "text-fg"}" style="${isWinner ? `color:${color}` : ""}">${r.position}</span>
+            </div>
+          </td>
+          <td class="px-3 py-2.5">
+            <a href="/drivers/${r.Driver.driverId}" class="flex items-center gap-3 hover:text-electric">
+              ${photoMarkup({ wikiUrl: r.Driver.url, initials, color, size: "xs" })}
+              <div>
+                <div class="font-display font-bold uppercase tracking-tight leading-tight">${r.Driver.code ?? r.Driver.familyName.slice(0, 3).toUpperCase()}</div>
+                <div class="font-mono text-[10px] text-fg-subtle">${r.Driver.givenName} ${r.Driver.familyName}</div>
+              </div>
+            </a>
+          </td>
+          <td class="px-3 py-2.5 font-mono text-xs text-fg-muted hidden md:table-cell">${r.Constructor.name}</td>
+          <td class="px-3 py-2.5 text-right font-mono text-sm tabular-nums">${r.Time?.time ?? r.status}</td>
+          <td class="px-3 py-2.5 text-right font-mono font-bold text-warning tabular-nums">${r.points}</td>
+        </tr>
+      `;
+    }
+    html += "</tbody></table></div>";
+    tableEl.innerHTML = html;
+    staggerReveal(tableEl.querySelectorAll<HTMLElement>(".reveal"), { delay: 40, stagger: 35 });
+    hydratePhotos(tableEl);
+  }
+
+  function renderUpcoming(races: JolpicaRace[]): void {
+    const grid = document.getElementById("upcoming-sessions");
+    if (!grid) return;
+    const now = Date.now();
+    const upcoming = races
+      .filter((r) => Date.parse(isoFromRace(r)) > now)
+      .sort((a, b) => Date.parse(isoFromRace(a)) - Date.parse(isoFromRace(b)))
+      .slice(0, 6);
+    if (!upcoming.length) {
+      grid.innerHTML = `<p class="text-sm text-fg-subtle font-mono col-span-full">Season complete — see you next year.</p>`;
+      return;
+    }
+    grid.innerHTML = "";
+    for (const r of upcoming) {
+      const country = r.Circuit.Location.country;
+      const flag = flagImgFromCountry(country, { size: "2.5rem" });
+      const a = document.createElement("a");
+      a.href = `/races/${r.round}`;
+      a.className = "reveal lift racing-stripe tilt group block border border-track bg-carbon hover:border-racing transition-colors clip-chamfer-tr";
+      a.dataset.tilt = "";
+      a.innerHTML = `
+        <div class="px-4 py-4 border-b border-track/50 flex items-center gap-4">
+          ${flag}
+          <div class="flex flex-col leading-tight min-w-0">
+            <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">Round ${r.round}</span>
+            <span class="font-display text-base font-extrabold uppercase tracking-tight truncate">${country}</span>
+          </div>
+        </div>
+        <div class="p-4">
+          <div class="font-display font-bold text-lg uppercase tracking-tight leading-tight">${r.raceName}</div>
+          <div class="font-mono text-xs text-fg-muted mt-1">${r.Circuit.circuitName}</div>
+          <div class="mt-3 flex items-center justify-between text-xs">
+            <span class="font-mono text-fg-subtle">${formatDateTime(isoFromRace(r))}</span>
+            <span class="font-mono text-electric">${formatCountdown(isoFromRace(r))}</span>
+          </div>
+        </div>
+      `;
+      grid.appendChild(a);
+    }
+    staggerReveal(grid.querySelectorAll<HTMLElement>(".reveal"), { delay: 0, stagger: 80 });
+    grid.querySelectorAll<HTMLElement>("[data-tilt]").forEach((el) => attachTilt(el, 5));
+  }
+
+  async function tryProbeLive(): Promise<void> {
+    // Optional progressive enhancement — if OpenF1 happens to be running
+    // a live session right now, flip the LIVE badge. We don't block on it.
+    try {
+      const { openf1 } = await import("../lib/openf1/client");
+      const { isSessionLive } = await import("../lib/live");
+      const sessions = await openf1.sessions({ session_key: "latest" }, { ttl: 30_000 });
+      const session = sessions.at(-1);
+      if (session && isSessionLive(session)) {
+        document.getElementById("live-indicator")?.classList.remove("hidden");
+        const chip = document.getElementById("session-chip");
+        if (chip) chip.textContent = "Live now";
+      }
+    } catch {
+      // OpenF1 down? No problem — the dashboard is Jolpica-powered.
+    }
+  }
+
+  async function load(): Promise<void> {
+    const tasks = [
+      swr<JolpicaRace[]>(() => getSchedule("current"), {
+        key: "dashboard:schedule",
+        onCached: (races) => {
+          renderHero(races);
+          renderWeekend(races);
+          renderUpcoming(races);
+        },
+        onFresh: (races) => {
+          renderHero(races);
+          renderWeekend(races);
+          renderUpcoming(races);
+        },
+        onError: (err) => console.warn("[dashboard] schedule", err),
+      }),
+      swr<DriverStanding[]>(() => getDriverStandings("current"), {
+        key: "dashboard:driver-standings",
+        onCached: renderChampionship,
+        onFresh: renderChampionship,
+        onError: (err) => console.warn("[dashboard] driver standings", err),
+      }),
+      swr<ConstructorStanding[]>(() => getConstructorStandings("current"), {
+        key: "dashboard:constructor-standings",
+        onCached: renderConstructorTop,
+        onFresh: renderConstructorTop,
+        onError: (err) => console.warn("[dashboard] constructor standings", err),
+      }),
+      swr<JolpicaRace | null>(() => getRaceResults("current", "last"), {
+        key: "dashboard:last-race",
+        onCached: renderLastRace,
+        onFresh: renderLastRace,
+        onError: (err) => console.warn("[dashboard] last race", err),
+      }),
+    ];
+
+    await Promise.allSettled(tasks);
+
+    dismissLights();
+    staggerReveal(document.querySelectorAll<HTMLElement>(".reveal"), { delay: 60, stagger: 70 });
+
+    // Non-blocking live probe
+    tryProbeLive();
+  }
+
+  load();
+</script>

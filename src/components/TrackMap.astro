@@ -1,0 +1,330 @@
+---
+/**
+ * Live track map — SVG rendering driven by OpenF1 `/location` GPS samples.
+ * The component self-hydrates: it fetches its own data and animates the
+ * driver dots around the circuit outline.
+ *
+ * Strategy:
+ *  - One initial fetch over a 5-minute window to capture enough samples
+ *    for a full circuit outline.
+ *  - A lighter fetch every ~3s for fresh positions of all drivers.
+ *  - Bounding box is derived from the data, so any circuit "just works".
+ */
+---
+
+<div class="track-map" id="track-map">
+  <div class="track-map__header">
+    <div>
+      <div class="track-map__eyebrow">Live · GPS</div>
+      <div class="track-map__title" id="track-map-title">Track Map</div>
+    </div>
+    <div class="track-map__legend">
+      <span class="dot dot--track"></span><span>Outline</span>
+      <span class="dot dot--driver"></span><span>Driver</span>
+    </div>
+  </div>
+  <div class="track-map__canvas">
+    <svg id="track-map-svg" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="dotGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ff2a1c" stop-opacity="0.5"></stop>
+          <stop offset="100%" stop-color="#ff2a1c" stop-opacity="0"></stop>
+        </radialGradient>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M40 0H0V40" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#grid)"></rect>
+      <path id="track-outline" d="" fill="none" stroke="#2f3131" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"></path>
+      <path id="track-outline-inner" d="" fill="none" stroke="#0e0e0e" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+      <path id="track-outline-line" d="" fill="none" stroke="rgba(0,210,255,0.25)" stroke-width="1" stroke-dasharray="4 6"></path>
+      <g id="driver-dots"></g>
+    </svg>
+    <div class="track-map__overlay" id="track-map-overlay">
+      <div class="track-map__pulse"></div>
+      <p>Acquiring GPS data…</p>
+    </div>
+  </div>
+  <div class="track-map__footer">
+    <span id="track-map-status">—</span>
+    <span id="track-map-refresh">—</span>
+  </div>
+</div>
+
+<style>
+  .track-map {
+    border: 1px solid #2f3131;
+    background: #131313;
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .track-map::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(135deg, transparent 60%, rgba(225, 6, 0, 0.18));
+    pointer-events: none;
+  }
+  .track-map__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid #2f3131;
+    position: relative;
+  }
+  .track-map__eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    color: #e10600;
+  }
+  .track-map__title {
+    font-family: "Archivo Narrow", system-ui, sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+  }
+  .track-map__legend {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: #af8781;
+  }
+  .track-map__legend .dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+  }
+  .track-map__legend .dot--track { background: #2f3131; }
+  .track-map__legend .dot--driver { background: #ff2a1c; border-radius: 50%; }
+
+  .track-map__canvas {
+    position: relative;
+    background:
+      radial-gradient(800px 400px at 50% 50%, rgba(0, 210, 255, 0.05), transparent 60%),
+      #0a0a0a;
+    aspect-ratio: 5 / 3;
+  }
+  .track-map__canvas svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .track-map__overlay {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(10, 10, 10, 0.75);
+    backdrop-filter: blur(4px);
+    color: #af8781;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    transition: opacity 0.4s;
+  }
+  .track-map__overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .track-map__pulse {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #e10600;
+    margin: 0 auto 1rem;
+    box-shadow: 0 0 0 0 rgba(225, 6, 0, 0.6);
+    animation: track-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes track-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(225, 6, 0, 0.6); }
+    50% { transform: scale(1.1); box-shadow: 0 0 0 18px rgba(225, 6, 0, 0); }
+  }
+
+  .track-map__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.625rem 1.25rem;
+    border-top: 1px solid #2f3131;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    color: #af8781;
+  }
+
+  .driver-dot {
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-box: fill-box;
+  }
+  .driver-dot__label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    font-weight: 700;
+    fill: #fff;
+    text-anchor: middle;
+    paint-order: stroke fill;
+    stroke: #000;
+    stroke-width: 3px;
+  }
+</style>
+
+<script>
+  import { openf1 } from "../lib/openf1/client";
+  import { teamHex } from "../lib/format";
+  import type { Driver, Location } from "../lib/openf1/types";
+
+  const REFRESH_MS = 8_000;
+  const WINDOW_MS = 5 * 60_000;
+
+  let drivers: Driver[] = [];
+  let bbox: { minX: number; maxX: number; minY: number; maxY: number } | null = null;
+
+  const SVG_W = 1000;
+  const SVG_H = 600;
+  const PADDING = 50;
+
+  function project(x: number, y: number): { px: number; py: number } {
+    if (!bbox) return { px: 0, py: 0 };
+    const dx = bbox.maxX - bbox.minX || 1;
+    const dy = bbox.maxY - bbox.minY || 1;
+    const scale = Math.min((SVG_W - PADDING * 2) / dx, (SVG_H - PADDING * 2) / dy);
+    const px = PADDING + (x - bbox.minX) * scale + ((SVG_W - PADDING * 2) - dx * scale) / 2;
+    const py = PADDING + (bbox.maxY - y) * scale + ((SVG_H - PADDING * 2) - dy * scale) / 2;
+    return { px, py };
+  }
+
+  function buildOutline(samples: Location[]): string {
+    if (!samples.length) return "";
+    // Use one driver's track as the outline (lots of points = closed loop)
+    const counts = new Map<number, number>();
+    for (const s of samples) counts.set(s.driver_number, (counts.get(s.driver_number) ?? 0) + 1);
+    const lead = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (lead == null) return "";
+    const path = samples
+      .filter((s) => s.driver_number === lead)
+      .sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
+    if (path.length < 8) return "";
+    const points = path.map((s) => project(s.x, s.y));
+    let d = `M ${points[0].px.toFixed(1)} ${points[0].py.toFixed(1)}`;
+    for (let i = 1; i < points.length; i++) {
+      d += ` L ${points[i].px.toFixed(1)} ${points[i].py.toFixed(1)}`;
+    }
+    return d;
+  }
+
+  function lastPerDriver(samples: Location[]): Map<number, Location> {
+    const map = new Map<number, Location>();
+    for (const s of samples) {
+      const prev = map.get(s.driver_number);
+      if (!prev || Date.parse(s.date) > Date.parse(prev.date)) {
+        map.set(s.driver_number, s);
+      }
+    }
+    return map;
+  }
+
+  function renderDots(latest: Map<number, Location>): void {
+    const g = document.getElementById("driver-dots");
+    if (!g) return;
+    const driverMap = new Map(drivers.map((d) => [d.driver_number, d]));
+    const existing = new Map<number, SVGGElement>();
+    g.querySelectorAll<SVGGElement>("g[data-driver]").forEach((node) => {
+      existing.set(Number(node.dataset.driver), node);
+    });
+
+    for (const [num, loc] of latest) {
+      const driver = driverMap.get(num);
+      if (!driver) continue;
+      const { px, py } = project(loc.x, loc.y);
+      const color = teamHex(driver.team_colour);
+      let node = existing.get(num);
+      if (!node) {
+        node = document.createElementNS("http://www.w3.org/2000/svg", "g") as SVGGElement;
+        node.setAttribute("data-driver", String(num));
+        node.classList.add("driver-dot");
+        node.innerHTML = `
+          <circle r="14" fill="${color}33" stroke="${color}" stroke-width="0" />
+          <circle r="8" fill="${color}" stroke="#0a0a0a" stroke-width="2" />
+          <text class="driver-dot__label" y="3">${driver.name_acronym}</text>
+        `;
+        g.appendChild(node);
+        existing.set(num, node);
+      }
+      node.style.transform = `translate(${px.toFixed(1)}px, ${py.toFixed(1)}px)`;
+    }
+
+    // Remove drivers no longer reporting
+    for (const [num, node] of existing) {
+      if (!latest.has(num)) node.remove();
+    }
+  }
+
+  async function refresh(): Promise<void> {
+    try {
+      const since = new Date(Date.now() - WINDOW_MS).toISOString();
+      const [locations, latestDrivers] = await Promise.all([
+        openf1.location({ session_key: "latest", "date>=": since }, { ttl: 2_000 }),
+        drivers.length ? Promise.resolve(drivers) : openf1.drivers({ session_key: "latest" }, { ttl: 60_000 }),
+      ]);
+      drivers = latestDrivers as Driver[];
+
+      if (!locations.length) {
+        document.getElementById("track-map-overlay")?.classList.remove("hidden");
+        const overlay = document.getElementById("track-map-overlay");
+        if (overlay) overlay.querySelector("p")!.textContent = "No GPS data — session not live";
+        document.getElementById("track-map-status")!.textContent = "Idle · session not broadcasting";
+        document.getElementById("track-map-refresh")!.textContent = "Waiting for green flag";
+        return;
+      }
+
+      // Establish or refine bounding box
+      const xs = locations.map((l) => l.x);
+      const ys = locations.map((l) => l.y);
+      bbox = {
+        minX: Math.min(...xs),
+        maxX: Math.max(...xs),
+        minY: Math.min(...ys),
+        maxY: Math.max(...ys),
+      };
+
+      const outline = buildOutline(locations as Location[]);
+      const outlineEl = document.getElementById("track-outline");
+      const outlineInner = document.getElementById("track-outline-inner");
+      const outlineLine = document.getElementById("track-outline-line");
+      if (outline && outlineEl && outlineInner && outlineLine) {
+        outlineEl.setAttribute("d", outline);
+        outlineInner.setAttribute("d", outline);
+        outlineLine.setAttribute("d", outline);
+      }
+
+      const latest = lastPerDriver(locations as Location[]);
+      renderDots(latest);
+
+      document.getElementById("track-map-overlay")?.classList.add("hidden");
+      document.getElementById("track-map-status")!.textContent = `${latest.size} cars tracked`;
+      document.getElementById("track-map-refresh")!.textContent = `${new Date().toLocaleTimeString()} · auto-refresh ${REFRESH_MS / 1000}s`;
+    } catch (err) {
+      console.warn("[track-map] refresh failed", err);
+      const overlay = document.getElementById("track-map-overlay");
+      if (overlay) {
+        overlay.classList.remove("hidden");
+        overlay.querySelector("p")!.textContent = "GPS feed unavailable";
+      }
+      document.getElementById("track-map-status")!.textContent = "Offline";
+    }
+  }
+
+  refresh();
+  setInterval(refresh, REFRESH_MS);
+</script>

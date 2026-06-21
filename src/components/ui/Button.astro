@@ -1,0 +1,43 @@
+---
+interface Props {
+  href?: string;
+  variant?: "primary" | "ghost" | "outline";
+  size?: "sm" | "md";
+  class?: string;
+  type?: "button" | "submit";
+}
+
+const {
+  href,
+  variant = "primary",
+  size = "md",
+  class: className = "",
+  type = "button",
+} = Astro.props;
+
+const Tag = href ? "a" : "button";
+
+const variants = {
+  primary: "bg-racing text-white border border-racing hover:bg-racing-bright hover:glow-red",
+  ghost: "bg-surface-low text-fg border border-track hover:border-electric hover:text-electric",
+  outline: "bg-transparent text-fg border border-fg hover:bg-fg hover:text-bg",
+};
+
+const sizes = {
+  sm: "h-8 px-3 text-[11px]",
+  md: "h-10 px-5 text-xs",
+};
+---
+
+<Tag
+  href={href}
+  type={href ? undefined : type}
+  class:list={[
+    "inline-flex items-center justify-center gap-2 font-mono uppercase tracking-[0.2em] transition-all clip-chamfer-tr",
+    variants[variant],
+    sizes[size],
+    className,
+  ]}
+>
+  <slot />
+</Tag>

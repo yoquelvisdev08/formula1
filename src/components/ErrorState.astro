@@ -1,0 +1,23 @@
+---
+interface Props {
+  title?: string;
+  message?: string;
+  class?: string;
+}
+
+const {
+  title = "Telemetry unavailable",
+  message = "The OpenF1 API didn't respond in time. Check your network or try again.",
+  class: className = "",
+} = Astro.props;
+---
+
+<div class:list={["border border-racing/60 bg-racing/5 p-6 clip-chamfer-tr", className]}>
+  <div class="flex items-start gap-3">
+    <span class="mt-1 h-2 w-2 bg-racing pulse-live shrink-0"></span>
+    <div>
+      <div class="font-display text-lg font-bold uppercase tracking-tight">{title}</div>
+      <p class="text-sm text-fg-subtle mt-1">{message}</p>
+    </div>
+  </div>
+</div>

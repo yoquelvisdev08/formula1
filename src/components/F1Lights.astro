@@ -1,0 +1,177 @@
+---
+/**
+ * F1 start-lights gantry — the 5 red lights that light up sequentially before
+ * "lights out". Shown as a fullscreen overlay while the dashboard fetches its
+ * first snapshot. The script controlling the sequence lives in the page that
+ * mounts it; this component is pure markup + CSS.
+ */
+---
+
+<div id="f1-lights" class="f1-lights" data-state="loading" aria-hidden="true">
+  <div class="f1-lights__inner">
+    <div class="f1-lights__gantry">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div class="f1-lights__col" style={`--i:${i}`}>
+          <span class="f1-lights__bulb"></span>
+          <span class="f1-lights__bulb"></span>
+          <span class="f1-lights__bulb"></span>
+          <span class="f1-lights__bulb"></span>
+        </div>
+      ))}
+    </div>
+    <div class="f1-lights__caption">
+      <div class="f1-lights__label">Velocity Prime</div>
+      <div class="f1-lights__sub" data-lights-sub>Lights out and away we go</div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .f1-lights {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(800px 500px at 50% 30%, rgba(225, 6, 0, 0.18), transparent 60%),
+      radial-gradient(900px 600px at 50% 100%, rgba(0, 210, 255, 0.10), transparent 60%),
+      #050505;
+    transition: opacity 0.6s ease-out, visibility 0.6s ease-out;
+  }
+  .f1-lights[data-state="done"] {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .f1-lights__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2.5rem;
+    transform: translateY(-3vh);
+  }
+
+  .f1-lights__gantry {
+    display: grid;
+    grid-template-columns: repeat(5, auto);
+    gap: clamp(8px, 1.5vw, 18px);
+    padding: clamp(14px, 2vw, 22px);
+    border: 1px solid #2f3131;
+    background: linear-gradient(180deg, #161616 0%, #0a0a0a 100%);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+  }
+
+  .f1-lights__col {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(5px, 0.8vw, 8px);
+    padding: clamp(6px, 1vw, 10px);
+    background: #050505;
+    border: 1px solid #1a1a1a;
+  }
+
+  .f1-lights__bulb {
+    display: block;
+    width: clamp(22px, 3.5vw, 42px);
+    height: clamp(22px, 3.5vw, 42px);
+    border-radius: 50%;
+    background: #1a0707;
+    border: 1px solid #2a0a0a;
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.6);
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+  }
+
+  /* Sequential ignition: each column lights at 0.4s + (i * 0.5s). */
+  .f1-lights[data-state="loading"] .f1-lights__col {
+    animation: lights-on 0.4s cubic-bezier(0.5, 0, 0.5, 1) forwards;
+    animation-delay: calc(0.5s + var(--i) * 0.55s);
+  }
+  /* When all 5 are lit, simulate "lights out" via class swap from JS,
+     but also if it stays on screen too long we sweep automatically. */
+  .f1-lights[data-state="lights-out"] .f1-lights__col {
+    animation: lights-off 0.18s ease-out forwards !important;
+  }
+
+  @keyframes lights-on {
+    to {
+      background: transparent;
+    }
+  }
+
+  /* Bulb glow when its parent column is in "on" state. We use the same
+     animation timing by chaining: the column transition is purely a flag.
+     The bulbs each pick up the glow on the same delay. */
+  .f1-lights[data-state="loading"] .f1-lights__bulb {
+    animation: bulb-on 0.4s cubic-bezier(0.5, 0, 0.5, 1) forwards;
+  }
+  .f1-lights[data-state="loading"] .f1-lights__col:nth-child(1) .f1-lights__bulb { animation-delay: 0.5s; }
+  .f1-lights[data-state="loading"] .f1-lights__col:nth-child(2) .f1-lights__bulb { animation-delay: 1.05s; }
+  .f1-lights[data-state="loading"] .f1-lights__col:nth-child(3) .f1-lights__bulb { animation-delay: 1.6s; }
+  .f1-lights[data-state="loading"] .f1-lights__col:nth-child(4) .f1-lights__bulb { animation-delay: 2.15s; }
+  .f1-lights[data-state="loading"] .f1-lights__col:nth-child(5) .f1-lights__bulb { animation-delay: 2.7s; }
+
+  .f1-lights[data-state="lights-out"] .f1-lights__bulb {
+    animation: bulb-off 0.18s ease-out forwards !important;
+    animation-delay: 0s !important;
+  }
+
+  @keyframes bulb-on {
+    to {
+      background: #ff1f12;
+      box-shadow:
+        0 0 14px rgba(255, 31, 18, 0.85),
+        0 0 28px rgba(255, 31, 18, 0.45),
+        inset 0 0 6px rgba(255, 255, 255, 0.4);
+      transform: scale(1.04);
+    }
+  }
+  @keyframes bulb-off {
+    to {
+      background: #1a0707;
+      box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.6);
+      transform: scale(1);
+    }
+  }
+
+  .f1-lights__caption {
+    text-align: center;
+    color: #e5e2e1;
+  }
+  .f1-lights__label {
+    font-family: "Archivo Narrow", system-ui, sans-serif;
+    font-weight: 800;
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .f1-lights__label::first-letter,
+  .f1-lights__label {
+    background: linear-gradient(90deg, #ffffff 0%, #ff2a1c 60%, #ffffff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .f1-lights__sub {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #af8781;
+    margin-top: 0.5rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .f1-lights__col,
+    .f1-lights__bulb {
+      animation: none !important;
+    }
+    .f1-lights {
+      display: none;
+    }
+  }
+</style>

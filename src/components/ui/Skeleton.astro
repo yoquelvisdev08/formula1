@@ -1,0 +1,14 @@
+---
+interface Props {
+  rows?: number;
+  height?: string;
+  class?: string;
+}
+const { rows = 3, height = "h-10", class: className = "" } = Astro.props;
+---
+
+<div class:list={["flex flex-col gap-2", className]}>
+  {Array.from({ length: rows }).map(() => (
+    <div class:list={[height, "bg-surface-low border border-track/60 scan"]}></div>
+  ))}
+</div>

@@ -1,0 +1,256 @@
+---
+import Base from "../../layouts/Base.astro";
+import Skeleton from "../../components/ui/Skeleton.astro";
+import ErrorState from "../../components/ErrorState.astro";
+import SectionHeader from "../../components/ui/SectionHeader.astro";
+---
+
+<Base title="Drivers & Teams · Velocity Prime" active="drivers">
+  <section class="pt-10 pb-8">
+    <div class="flex items-end justify-between flex-wrap gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="h-3 w-[2px] bg-racing"></span>
+          <span class="font-mono text-[11px] uppercase tracking-[0.3em] text-racing">Grid</span>
+        </div>
+        <h1 class="font-display text-5xl md:text-6xl font-extrabold uppercase tracking-tight leading-none">
+          Drivers <span class="text-racing">&</span> Teams
+        </h1>
+        <p class="mt-4 text-base text-fg-muted max-w-2xl">
+          The current grid, by constructor. Points, wins and the championship
+          rank for every driver. Click anyone for race-by-race form.
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <div class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">Filter</div>
+        <input
+          id="driver-search"
+          type="search"
+          placeholder="Search driver or team…"
+          class="w-72 bg-surface-low border-b border-track px-3 py-2 font-mono text-sm focus:border-electric focus:outline-none focus:bg-surface"
+        />
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       CONSTRUCTORS — championship strip
+       ============================================================ -->
+  <section class="mb-12">
+    <SectionHeader eyebrow="Constructors" title="The Teams" description="Eleven outfits chasing the constructors' crown. Click any team's drivers below for race-by-race form." />
+    <div id="constructor-strip" class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      <Skeleton rows={4} height="h-24" />
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DRIVERS BY TEAM
+       ============================================================ -->
+  <section class="mb-12">
+    <SectionHeader eyebrow="Grid" title="The Drivers" description="Twenty cars on the grid, each with their own story this season." />
+    <div id="teams-grid" class="grid gap-6">
+      <Skeleton rows={4} height="h-48" />
+    </div>
+  </section>
+
+  <div id="drivers-error" class="hidden"><ErrorState /></div>
+</Base>
+
+<script>
+  import {
+    getDriverStandings,
+    getConstructorStandings,
+    teamColourFor,
+  } from "../../lib/jolpica";
+  import { swr } from "../../lib/cache";
+  import { staggerReveal, countUp } from "../../lib/anim";
+  import { flagImgFromNationality } from "../../lib/format";
+  import { photoMarkup, teamLogoMarkup, hydratePhotos } from "../../lib/wiki";
+  import type { DriverStanding, ConstructorStanding } from "../../lib/jolpica";
+
+  function render(standings: DriverStanding[]): void {
+    const grid = document.getElementById("teams-grid");
+    const errorBox = document.getElementById("drivers-error");
+    if (!grid) return;
+
+    if (!standings.length) {
+      grid.innerHTML = `<p class="text-sm text-fg-subtle font-mono">Grid not available yet.</p>`;
+      return;
+    }
+
+    // Group by constructor (first constructor in case of mid-season change)
+    const byTeam = new Map<string, { name: string; color: string; logo: string; drivers: DriverStanding[]; totalPoints: number }>();
+    for (const s of standings) {
+      const team = s.Constructors[0];
+      if (!team) continue;
+      const existing = byTeam.get(team.constructorId);
+      if (existing) {
+        existing.drivers.push(s);
+        existing.totalPoints += Number(s.points);
+      } else {
+        byTeam.set(team.constructorId, {
+          name: team.name,
+          color: teamColourFor(team.constructorId),
+          logo: teamLogoMarkup({ wikiUrl: team.url, name: team.name, color: teamColourFor(team.constructorId), height: "3rem" }),
+          drivers: [s],
+          totalPoints: Number(s.points),
+        });
+      }
+    }
+
+    // Sort teams by total points desc
+    const teams = [...byTeam.entries()].sort((a, b) => b[1].totalPoints - a[1].totalPoints);
+    grid.innerHTML = "";
+
+    for (const [, team] of teams) {
+      const section = document.createElement("section");
+      section.className = "reveal border border-track bg-carbon clip-chamfer-tr team-block";
+      section.dataset.team = team.name.toLowerCase();
+      section.innerHTML = `
+        <div class="relative flex items-center justify-between px-5 py-4 border-b border-track gap-4">
+          <div class="absolute left-0 top-0 bottom-0 w-[3px]" style="background:${team.color}"></div>
+          <div class="flex items-center gap-4 min-w-0">
+            ${team.logo}
+            <div class="min-w-0">
+              <div class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">Constructor</div>
+              <div class="font-display text-2xl font-extrabold uppercase tracking-tight truncate" style="color:${team.color}">${team.name}</div>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="font-display text-3xl font-extrabold tabular-nums team-points" data-points="${team.totalPoints}">0</div>
+            <div class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">team points</div>
+          </div>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-0 driver-list"></div>
+      `;
+
+      const list = section.querySelector<HTMLDivElement>(".driver-list")!;
+      for (const s of team.drivers) {
+        const d = s.Driver;
+        const flag = flagImgFromNationality(d.nationality, { size: "1em" });
+        const initials = (d.code ?? `${d.givenName.charAt(0)}${d.familyName.charAt(0)}`).toUpperCase();
+        const card = document.createElement("a");
+        card.href = `/drivers/${d.driverId}`;
+        card.className = "driver-card racing-stripe lift group relative flex items-center gap-4 p-5 border-t border-track/40 sm:border-t-0 sm:border-l hover:bg-surface-low transition-colors";
+        card.dataset.search = `${d.givenName} ${d.familyName} ${d.nationality} ${team.name}`.toLowerCase();
+        card.innerHTML = `
+          <div class="font-display text-4xl font-extrabold tabular-nums shrink-0" style="color:${team.color}">${s.position}</div>
+          ${photoMarkup({ wikiUrl: d.url, initials, color: team.color, size: "md" })}
+          <div class="flex-1 min-w-0">
+            <div class="font-display text-lg font-bold uppercase tracking-tight leading-tight truncate">
+              <span class="block text-fg-muted text-xs font-medium">${d.givenName}</span>
+              <span>${d.familyName}</span>
+            </div>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">#${d.permanentNumber ?? "—"} · ${d.code ?? d.familyName.slice(0, 3).toUpperCase()}</span>
+              ${flag}
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="font-display text-2xl font-extrabold tabular-nums driver-points" data-points="${s.points}">0</div>
+            <div class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">${Number(s.wins) > 0 ? `${s.wins} win${s.wins === "1" ? "" : "s"}` : "pts"}</div>
+          </div>
+        `;
+        list.appendChild(card);
+      }
+      grid.appendChild(section);
+    }
+
+    staggerReveal(grid.querySelectorAll<HTMLElement>(".reveal"), { delay: 60, stagger: 100 });
+    setTimeout(() => {
+      grid.querySelectorAll<HTMLElement>(".team-points, .driver-points").forEach((el) => {
+        const target = Number(el.dataset.points);
+        countUp(el, target, { duration: 900 });
+      });
+    }, 250);
+    hydratePhotos(grid);
+
+    // Search filter
+    const search = document.getElementById("driver-search") as HTMLInputElement | null;
+    search?.addEventListener("input", () => {
+      const q = search.value.trim().toLowerCase();
+      document.querySelectorAll<HTMLElement>(".driver-card").forEach((card) => {
+        const matches = !q || card.dataset.search?.includes(q);
+        card.style.display = matches ? "" : "none";
+      });
+      document.querySelectorAll<HTMLElement>(".team-block").forEach((block) => {
+        const visible = [...block.querySelectorAll<HTMLElement>(".driver-card")].some((c) => c.style.display !== "none");
+        block.style.display = visible ? "" : "none";
+      });
+    });
+
+    errorBox?.classList.add("hidden");
+  }
+
+  function renderConstructors(standings: ConstructorStanding[]): void {
+    const strip = document.getElementById("constructor-strip");
+    if (!strip) return;
+    if (!standings.length) {
+      strip.innerHTML = `<p class="text-sm text-fg-subtle font-mono col-span-full">Constructor standings unavailable.</p>`;
+      return;
+    }
+    const max = Number(standings[0].points) || 1;
+    strip.innerHTML = "";
+    for (const s of standings) {
+      const color = teamColourFor(s.Constructor.constructorId);
+      const logo = teamLogoMarkup({ wikiUrl: s.Constructor.url, name: s.Constructor.name, color, height: "1.75rem" });
+      const points = Number(s.points);
+      const fillPct = (points / max) * 100;
+      const card = document.createElement("div");
+      card.className = "reveal lift relative border border-track bg-carbon p-4 clip-chamfer-tr";
+      card.innerHTML = `
+        <div class="absolute left-0 top-0 bottom-0 w-[3px]" style="background:${color}"></div>
+        <div class="flex items-start justify-between mb-3 gap-3">
+          <div class="min-w-0">
+            <div class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">P${s.position}</div>
+            <div class="flex items-center gap-2 mt-1">
+              ${logo}
+              <div class="font-display text-lg font-extrabold uppercase tracking-tight leading-tight truncate" style="color:${color}">${s.Constructor.name}</div>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="font-display text-3xl font-extrabold tabular-nums ctor-pts" data-pts="${points}">0</div>
+            <div class="font-mono text-[9px] uppercase tracking-[0.2em] text-fg-subtle">${Number(s.wins) > 0 ? `${s.wins} win${s.wins === "1" ? "" : "s"}` : "pts"}</div>
+          </div>
+        </div>
+        <div class="h-1 bg-surface-low border border-track/40 overflow-hidden">
+          <div class="h-full" style="width:${fillPct.toFixed(1)}%; background:${color};"></div>
+        </div>
+      `;
+      strip.appendChild(card);
+    }
+    staggerReveal(strip.querySelectorAll<HTMLElement>(".reveal"), { delay: 30, stagger: 60 });
+    setTimeout(() => {
+      strip.querySelectorAll<HTMLElement>(".ctor-pts").forEach((el) => {
+        const target = Number(el.dataset.pts);
+        countUp(el, target, { duration: 800 });
+      });
+    }, 200);
+  }
+
+  async function load(): Promise<void> {
+    try {
+      await Promise.allSettled([
+        swr(() => getDriverStandings("current"), {
+          key: "drivers-hub:standings",
+          onCached: render,
+          onFresh: render,
+          onError: (err) => console.warn("[drivers hub] drivers failed", err),
+        }),
+        swr(() => getConstructorStandings("current"), {
+          key: "drivers-hub:constructors",
+          onCached: renderConstructors,
+          onFresh: renderConstructors,
+          onError: (err) => console.warn("[drivers hub] constructors failed", err),
+        }),
+      ]);
+    } catch (err) {
+      console.error("[drivers hub] failed", err);
+      document.getElementById("teams-grid")?.classList.add("hidden");
+      document.getElementById("drivers-error")?.classList.remove("hidden");
+    }
+  }
+
+  load();
+</script>

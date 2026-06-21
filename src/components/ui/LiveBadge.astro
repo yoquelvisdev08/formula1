@@ -1,0 +1,19 @@
+---
+interface Props {
+  label?: string;
+  class?: string;
+}
+const { label = "LIVE", class: className = "" } = Astro.props;
+---
+
+<span
+  class:list={[
+    "inline-flex items-center gap-2 bg-racing px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.25em] text-white",
+    className,
+  ]}
+>
+  <span class="relative flex h-2 w-2">
+    <span class="absolute inset-0 rounded-full bg-white pulse-live"></span>
+  </span>
+  {label}
+</span>

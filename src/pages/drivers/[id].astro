@@ -1,0 +1,296 @@
+---
+import Base from "../../layouts/Base.astro";
+import Card from "../../components/ui/Card.astro";
+import Stat from "../../components/ui/Stat.astro";
+import Skeleton from "../../components/ui/Skeleton.astro";
+import ErrorState from "../../components/ErrorState.astro";
+import SectionHeader from "../../components/ui/SectionHeader.astro";
+
+/**
+ * Pull the current-season driver IDs from Jolpica at build time so the
+ * route always covers whoever is on the grid (rookies included). Fall
+ * back to a hand-curated historic catalogue if Jolpica is unreachable
+ * during the build — that way the build never breaks.
+ *
+ * NOTE: The fallback list is declared INSIDE the function on purpose.
+ * Astro bundles `getStaticPaths` in isolation; module-level constants
+ * aren't reliably hoisted into the build closure.
+ */
+export async function getStaticPaths() {
+  const fallbackIds = [
+    "max_verstappen", "hamilton", "russell", "leclerc", "sainz", "perez", "alonso",
+    "stroll", "ocon", "gasly", "norris", "piastri", "albon", "sargeant",
+    "hulkenberg", "kevin_magnussen", "tsunoda", "ricciardo", "bottas", "zhou",
+    "lawson", "doohan", "antonelli", "hadjar", "bortoleto", "colapinto", "bearman",
+    "jak_crawford", "arvid_lindblad",
+    "raikkonen", "vettel", "rosberg", "button", "massa", "webber", "kubica",
+    "schumacher", "michael_schumacher", "barrichello", "trulli", "fisichella",
+    "heidfeld", "glock", "kovalainen", "sutil", "buemi", "grosjean", "maldonado",
+    "di_resta", "vergne", "chilton", "bianchi", "ericsson", "kvyat", "hartley",
+    "sirotkin", "mick_schumacher", "mazepin", "latifi", "de_vries", "giovinazzi",
+  ];
+  let liveIds: string[] = [];
+  try {
+    const res = await fetch("https://api.jolpi.ca/ergast/f1/current/drivers.json?limit=100");
+    if (res.ok) {
+      const data = await res.json();
+      liveIds = (data?.MRData?.DriverTable?.Drivers ?? [])
+        .map((d: { driverId: string }) => d.driverId)
+        .filter(Boolean);
+    }
+  } catch {
+    /* network error during build — fall through to fallback list only */
+  }
+  const all = Array.from(new Set([...liveIds, ...fallbackIds]));
+  return all.map((id) => ({ params: { id } }));
+}
+
+const { id } = Astro.params;
+---
+
+<Base title={`${id} · Velocity Prime`} active="drivers">
+  <section class="pt-8 pb-6" id="driver-hero">
+    <div class="flex items-center gap-2 mb-3" id="hero-tags"></div>
+    <div class="grid lg:grid-cols-[auto_1fr] gap-8 items-end">
+      <div id="driver-photo-slot" class="shrink-0">
+        <div class="h-48 w-48 bg-surface-low border-2 border-track scan"></div>
+      </div>
+      <div>
+        <div class="font-display text-xl md:text-2xl text-fg-muted font-bold uppercase tracking-tight" data-bind="team_name">—</div>
+        <h1 class="font-display text-5xl md:text-7xl font-extrabold uppercase tracking-tighter leading-none">
+          <span class="block" data-bind="first_name">—</span>
+          <span class="block" data-bind="last_name">—</span>
+        </h1>
+        <p class="mt-4 max-w-xl text-base text-fg-muted" data-bind="bio">—</p>
+        <div class="grid grid-cols-3 gap-3 mt-6 max-w-md">
+          <div class="text-center border border-track bg-carbon p-3 clip-chamfer-tr">
+            <div class="font-mono text-[9px] uppercase tracking-[0.2em] text-fg-subtle">Number</div>
+            <div class="font-display text-2xl font-extrabold tabular-nums" id="number-big" data-bind="number">—</div>
+          </div>
+          <div class="text-center border border-track bg-carbon p-3 clip-chamfer-tr">
+            <div class="font-mono text-[9px] uppercase tracking-[0.2em] text-fg-subtle">Code</div>
+            <div class="font-display text-2xl font-extrabold" data-bind="code">—</div>
+          </div>
+          <div class="text-center border border-track bg-carbon p-3 clip-chamfer-tr">
+            <div class="font-mono text-[9px] uppercase tracking-[0.2em] text-fg-subtle">Country</div>
+            <div class="font-display text-2xl font-extrabold" data-bind="flag">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+    <Card chamfer={false} class="!p-5">
+      <Stat label="Championship Pos" value="—" tone="red" class="metric-position" />
+    </Card>
+    <Card chamfer={false} class="!p-5">
+      <Stat label="Points" value="—" tone="yellow" class="metric-points" />
+    </Card>
+    <Card chamfer={false} class="!p-5">
+      <Stat label="Wins" value="—" class="metric-wins" />
+    </Card>
+    <Card chamfer={false} class="!p-5">
+      <Stat label="Best Finish" value="—" tone="blue" class="metric-best" />
+    </Card>
+  </section>
+
+  <section class="mb-10">
+    <SectionHeader eyebrow="Season" title="Race-by-race" description="Every round of the current season — points and finishing position." />
+    <div id="season-results">
+      <Skeleton rows={6} height="h-14" />
+    </div>
+  </section>
+
+  <div id="driver-error" class="hidden"><ErrorState /></div>
+</Base>
+
+<script is:inline define:vars={{ id }}>
+  window.__driverId = id;
+</script>
+
+<script>
+  import {
+    getDriver,
+    getDriverStandings,
+    getDriverSeasonResults,
+    teamColourFor,
+  } from "../../lib/jolpica";
+  import { flagImgFromNationality, formatDate } from "../../lib/format";
+  import { staggerReveal, countUp } from "../../lib/anim";
+  import { photoMarkup, teamLogoMarkup, hydratePhotos } from "../../lib/wiki";
+  import type { JolpicaRace } from "../../lib/jolpica";
+
+  const driverId = (window as unknown as { __driverId: string }).__driverId;
+
+  function bind(name: string, value: string): void {
+    document.querySelectorAll<HTMLElement>(`[data-bind="${name}"]`).forEach((el) => {
+      el.textContent = value;
+    });
+  }
+
+  function setMetric(selector: string, value: string | number, animate = false): void {
+    const el = document.querySelector(`${selector} .font-display`) as HTMLElement | null;
+    if (!el) return;
+    if (animate && typeof value === "number") {
+      countUp(el, value, { duration: 800 });
+    } else {
+      el.textContent = String(value);
+    }
+  }
+
+  function age(dob: string): number {
+    const birth = new Date(dob);
+    const now = new Date();
+    let years = now.getFullYear() - birth.getFullYear();
+    const m = now.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) years--;
+    return years;
+  }
+
+  function renderSeasonResults(results: JolpicaRace[]): void {
+    const wrap = document.getElementById("season-results");
+    if (!wrap) return;
+    if (!results.length) {
+      wrap.innerHTML = `<p class="text-sm text-fg-subtle font-mono">No race results in the current season yet.</p>`;
+      return;
+    }
+    let html = `
+      <div class="border border-track bg-carbon clip-chamfer-tr overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-[10px] font-mono uppercase tracking-[0.2em] text-fg-subtle border-b border-track">
+            <tr>
+              <th class="text-left px-3 py-3 w-12">R</th>
+              <th class="text-left px-3 py-3">Grand Prix</th>
+              <th class="text-right px-3 py-3 w-16">Grid</th>
+              <th class="text-right px-3 py-3 w-16">Finish</th>
+              <th class="text-right px-3 py-3">Time / Status</th>
+              <th class="text-right px-3 py-3 w-16">Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    // Resolve the driver's team colour once (we're on a single-driver page)
+    const heroNum = document.getElementById("number-big");
+    const driverColor = heroNum?.style.color || teamColourFor(results[0]?.Results?.[0]?.Constructor?.constructorId);
+    for (const race of results) {
+      const r = race.Results?.[0];
+      if (!r) continue;
+      const finish = r.position;
+      const isWin = finish === "1";
+      const podium = ["1", "2", "3"].includes(finish);
+      const timeOrStatus = r.Time?.time ?? r.status;
+      html += `
+        <tr class="border-b border-track/30 hover:bg-surface-low/60 reveal">
+          <td class="px-3 py-2.5 font-mono text-xs text-fg-subtle">${race.round}</td>
+          <td class="px-3 py-2.5">
+            <a href="/races/${race.round}" class="hover:text-electric">
+              <div class="font-display font-bold uppercase tracking-tight leading-tight">${race.raceName}</div>
+              <div class="font-mono text-[10px] text-fg-subtle">${formatDate(race.date)}</div>
+            </a>
+          </td>
+          <td class="px-3 py-2.5 text-right font-mono tabular-nums">${r.grid}</td>
+          <td class="px-3 py-2.5 text-right">
+            <span class="font-display text-xl font-extrabold tabular-nums ${isWin ? "" : podium ? "text-warning" : "text-fg-muted"}" style="${isWin ? `color:${driverColor}` : ""}">${finish}</span>
+          </td>
+          <td class="px-3 py-2.5 text-right font-mono text-xs text-fg-muted">${timeOrStatus}</td>
+          <td class="px-3 py-2.5 text-right font-mono font-bold text-warning tabular-nums">${r.points}</td>
+        </tr>
+      `;
+    }
+    html += "</tbody></table></div>";
+    wrap.innerHTML = html;
+    staggerReveal(wrap.querySelectorAll<HTMLElement>(".reveal"), { delay: 40, stagger: 35 });
+  }
+
+  async function load(): Promise<void> {
+    try {
+      const [driverSettled, standingsSettled, resultsSettled] = await Promise.allSettled([
+        getDriver(driverId),
+        getDriverStandings("current"),
+        getDriverSeasonResults(driverId, "current"),
+      ]);
+
+      const driver = driverSettled.status === "fulfilled" ? driverSettled.value : null;
+      const standings = standingsSettled.status === "fulfilled" ? standingsSettled.value : [];
+      const results = resultsSettled.status === "fulfilled" ? resultsSettled.value : [];
+
+      if (!driver) {
+        document.getElementById("driver-error")?.classList.remove("hidden");
+        return;
+      }
+
+      const standing = standings.find((s) => s.Driver.driverId === driverId) ?? null;
+      const team = standing?.Constructors[0];
+      const color = teamColourFor(team?.constructorId);
+      const teamLogoHtml = team
+        ? teamLogoMarkup({ wikiUrl: team.url, name: team.name, color, height: "1.6rem" })
+        : "";
+
+      const tags = document.getElementById("hero-tags");
+      if (tags) {
+        tags.innerHTML = `
+          <span class="inline-flex items-center gap-2 border px-3 py-1.5 font-mono text-xs uppercase tracking-[0.2em]"
+                style="border-color:${color}; color:${color}">
+            ${teamLogoHtml}
+            ${team?.name ?? driver.nationality}
+          </span>
+          <span class="inline-flex items-center gap-1 border border-track text-fg-muted bg-surface-low px-3 py-1 font-mono text-xs uppercase tracking-[0.2em]">
+            ${age(driver.dateOfBirth)} years
+          </span>
+        `;
+      }
+
+      bind("team_name", team?.name ?? driver.nationality);
+      bind("first_name", driver.givenName.toUpperCase());
+      bind("last_name", driver.familyName.toUpperCase());
+      bind("number", driver.permanentNumber ?? "—");
+      bind("code", driver.code ?? driver.familyName.slice(0, 3).toUpperCase());
+      const flagEl = document.querySelector(`[data-bind="flag"]`);
+      if (flagEl) flagEl.innerHTML = flagImgFromNationality(driver.nationality, { size: "2.5rem" });
+      bind("bio", `${driver.nationality} driver born ${formatDate(driver.dateOfBirth)}. Currently racing for ${team?.name ?? "—"}.`);
+
+      const numEl = document.getElementById("number-big");
+      if (numEl) numEl.style.color = color;
+
+      const photoSlot = document.getElementById("driver-photo-slot");
+      if (photoSlot) {
+        const initials = (driver.code ?? `${driver.givenName.charAt(0)}${driver.familyName.charAt(0)}`).toUpperCase();
+        photoSlot.innerHTML = photoMarkup({
+          wikiUrl: driver.url,
+          initials,
+          color,
+          size: "xl",
+          class: "clip-chamfer-tr",
+        });
+        hydratePhotos(photoSlot);
+      }
+
+      if (standing) {
+        setMetric(".metric-position", `P${standing.position}`);
+        setMetric(".metric-points", Number(standing.points), true);
+        setMetric(".metric-wins", Number(standing.wins), true);
+        // Recolour the championship-position stat in the team's own colour
+        const posEl = document.querySelector(".metric-position .font-display") as HTMLElement | null;
+        if (posEl && standing.position === "1") posEl.style.color = color;
+      } else {
+        setMetric(".metric-position", "—");
+        setMetric(".metric-points", "—");
+        setMetric(".metric-wins", "—");
+      }
+
+      const finishes = results
+        .map((r) => Number(r.Results?.[0]?.position ?? Number.POSITIVE_INFINITY))
+        .filter((n) => Number.isFinite(n));
+      const best = finishes.length ? Math.min(...finishes) : null;
+      setMetric(".metric-best", best ? `P${best}` : "—");
+
+      renderSeasonResults(results);
+    } catch (err) {
+      console.error("[driver detail] failed", err);
+      document.getElementById("driver-error")?.classList.remove("hidden");
+    }
+  }
+
+  load();
+</script>

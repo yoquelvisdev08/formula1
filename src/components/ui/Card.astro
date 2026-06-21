@@ -1,0 +1,67 @@
+---
+interface Props {
+  title?: string;
+  subtitle?: string;
+  accent?: "red" | "blue" | "yellow" | "none";
+  chamfer?: boolean;
+  glass?: boolean;
+  class?: string;
+  href?: string;
+}
+
+const {
+  title,
+  subtitle,
+  accent = "none",
+  chamfer = true,
+  glass = false,
+  class: className = "",
+  href,
+} = Astro.props;
+
+const Tag = href ? "a" : "div";
+const accentBorder = {
+  red: "border-racing/40 hover:border-racing",
+  blue: "border-electric/40 hover:border-electric",
+  yellow: "border-warning/40 hover:border-warning",
+  none: "border-track hover:border-track-light",
+}[accent];
+
+const accentBar = {
+  red: "bg-racing",
+  blue: "bg-electric",
+  yellow: "bg-warning",
+  none: "bg-track-light",
+}[accent];
+---
+
+<Tag
+  href={href}
+  class:list={[
+    "group relative block border bg-carbon transition-colors",
+    accentBorder,
+    chamfer && "clip-chamfer-tr",
+    glass && "canopy",
+    className,
+  ]}
+>
+  {(title || subtitle) && (
+    <div class="relative flex items-center justify-between px-4 py-3 border-b border-track/60">
+      <div class="min-w-0">
+        {title && (
+          <div class="font-display text-base font-bold tracking-tight uppercase truncate">{title}</div>
+        )}
+        {subtitle && (
+          <div class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">{subtitle}</div>
+        )}
+      </div>
+      <slot name="actions" />
+    </div>
+  )}
+  {(title || subtitle) && (
+    <div class:list={["absolute left-0 top-0 h-full w-[3px]", accentBar]}></div>
+  )}
+  <div class="p-4">
+    <slot />
+  </div>
+</Tag>

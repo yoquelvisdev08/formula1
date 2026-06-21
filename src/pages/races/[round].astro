@@ -1,0 +1,337 @@
+---
+import Base from "../../layouts/Base.astro";
+import Card from "../../components/ui/Card.astro";
+import Stat from "../../components/ui/Stat.astro";
+import Skeleton from "../../components/ui/Skeleton.astro";
+import ErrorState from "../../components/ErrorState.astro";
+import SectionHeader from "../../components/ui/SectionHeader.astro";
+
+export function getStaticPaths() {
+  // F1 has 22-24 rounds per season — generate 30 to be safe.
+  return Array.from({ length: 30 }, (_, i) => ({ params: { round: String(i + 1) } }));
+}
+
+const { round } = Astro.params;
+---
+
+<Base title={`Round ${round} · Velocity Prime`} active="calendar">
+  <section class="pt-8 pb-6">
+    <div class="flex items-center gap-2 mb-3 flex-wrap" id="race-tags"></div>
+    <div class="flex items-end gap-6 flex-wrap">
+      <div id="race-country-badge" class="shrink-0">
+        <div class="h-20 w-24 bg-surface-low border border-track/60 scan"></div>
+      </div>
+      <div class="min-w-0">
+        <h1 class="font-display text-4xl md:text-6xl font-extrabold uppercase tracking-tighter leading-none">
+          <span class="block text-fg-muted text-xl md:text-2xl font-bold mb-2" data-bind="country">Loading…</span>
+          <span data-bind="race_name">Grand Prix</span>
+        </h1>
+        <p class="mt-3 font-mono text-sm text-fg-subtle uppercase tracking-[0.2em]" data-bind="circuit_name">—</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+    <Card chamfer={false} class="!p-5"><Stat label="Round" value="—" class="metric-round" /></Card>
+    <Card chamfer={false} class="!p-5"><Stat label="Race Date" value="—" mono={false} class="metric-date" /></Card>
+    <Card chamfer={false} class="!p-5"><Stat label="Location" value="—" mono={false} class="metric-location" /></Card>
+    <Card chamfer={false} class="!p-5"><Stat label="Season" value="—" class="metric-season" /></Card>
+  </section>
+
+  <section class="mb-10">
+    <SectionHeader eyebrow="Weekend" title="Sessions" description="Practice, qualifying, sprint and race scheduled times." />
+    <div id="sessions-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <Skeleton rows={4} height="h-28" />
+    </div>
+  </section>
+
+  <section class="mb-10">
+    <SectionHeader eyebrow="Race Result" title="Classification" description="Final positions, points and gap." />
+    <div id="results-wrap">
+      <Skeleton rows={5} height="h-12" />
+    </div>
+  </section>
+
+  <section class="mb-10">
+    <SectionHeader eyebrow="Qualifying" title="Grid Order" description="Q1 / Q2 / Q3 times." />
+    <div id="qualifying-wrap">
+      <Skeleton rows={5} height="h-12" />
+    </div>
+  </section>
+
+  <section class="mb-12">
+    <SectionHeader eyebrow="Strategy" title="Pit Stops" description="Each driver's pit stops during the race." />
+    <div id="pits-wrap">
+      <p class="text-sm text-fg-subtle font-mono">Loading…</p>
+    </div>
+  </section>
+
+  <div id="race-error" class="hidden"><ErrorState /></div>
+</Base>
+
+<script is:inline define:vars={{ round }}>
+  window.__raceRound = Number(round);
+</script>
+
+<script>
+  import { getRace, getRaceResults, getQualifyingResults, getPitStops, teamColourFor } from "../../lib/jolpica";
+  import { flagImgFromCountry, formatDate, formatDateTime } from "../../lib/format";
+  import { staggerReveal } from "../../lib/anim";
+  import { photoMarkup, hydratePhotos } from "../../lib/wiki";
+  import type { JolpicaRace } from "../../lib/jolpica";
+
+  const round = (window as unknown as { __raceRound: number }).__raceRound;
+
+  function bind(name: string, value: string): void {
+    document.querySelectorAll<HTMLElement>(`[data-bind="${name}"]`).forEach((el) => {
+      el.textContent = value;
+    });
+  }
+  function setMetric(selector: string, value: string): void {
+    document.querySelector(`${selector} .font-display`)!.textContent = value;
+  }
+
+  function renderSessions(race: JolpicaRace): void {
+    const grid = document.getElementById("sessions-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    const sessions: { name: string; date: string; time?: string }[] = [];
+    if (race.FirstPractice) sessions.push({ name: "Practice 1", ...race.FirstPractice });
+    if (race.SecondPractice) sessions.push({ name: "Practice 2", ...race.SecondPractice });
+    if (race.ThirdPractice) sessions.push({ name: "Practice 3", ...race.ThirdPractice });
+    if (race.SprintQualifying) sessions.push({ name: "Sprint Qualifying", ...race.SprintQualifying });
+    if (race.SprintShootout) sessions.push({ name: "Sprint Shootout", ...race.SprintShootout });
+    if (race.Sprint) sessions.push({ name: "Sprint", ...race.Sprint });
+    if (race.Qualifying) sessions.push({ name: "Qualifying", ...race.Qualifying });
+    sessions.push({ name: "Race", date: race.date, time: race.time });
+
+    const now = Date.now();
+    for (const s of sessions) {
+      const iso = `${s.date}T${s.time ?? "00:00:00Z"}`;
+      const start = Date.parse(iso);
+      const isPast = now > start;
+      const card = document.createElement("div");
+      card.className = "reveal border border-track bg-carbon clip-chamfer-tr";
+      card.innerHTML = `
+        <div class="flex items-center justify-between px-4 py-3 border-b border-track/50">
+          <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">${s.name}</span>
+          <span class="font-mono text-[10px] uppercase tracking-[0.2em] ${isPast ? "text-fg-subtle" : "text-electric"}">${isPast ? "Done" : "Upcoming"}</span>
+        </div>
+        <div class="p-4">
+          <div class="font-display text-base font-bold uppercase leading-tight">${formatDateTime(iso)}</div>
+        </div>
+      `;
+      grid.appendChild(card);
+    }
+    staggerReveal(grid.querySelectorAll<HTMLElement>(".reveal"), { delay: 30, stagger: 50 });
+  }
+
+  function renderResults(race: JolpicaRace | null): void {
+    const wrap = document.getElementById("results-wrap");
+    if (!wrap) return;
+    if (!race?.Results?.length) {
+      wrap.innerHTML = `<p class="text-sm text-fg-subtle font-mono">No race results yet — likely upcoming or in progress.</p>`;
+      return;
+    }
+    const winnerTime = race.Results[0]?.Time?.time;
+    let html = `
+      <div class="border border-track bg-carbon clip-chamfer-tr overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-[10px] font-mono uppercase tracking-[0.2em] text-fg-subtle border-b border-track">
+            <tr>
+              <th class="text-left px-3 py-3 w-12">Pos</th>
+              <th class="text-left px-3 py-3">Driver</th>
+              <th class="text-left px-3 py-3 hidden md:table-cell">Constructor</th>
+              <th class="text-right px-3 py-3 w-16">Grid</th>
+              <th class="text-right px-3 py-3 w-16">Laps</th>
+              <th class="text-right px-3 py-3">Time / Status</th>
+              <th class="text-right px-3 py-3 w-16">Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    for (const r of race.Results) {
+      const color = teamColourFor(r.Constructor.constructorId);
+      const gap = r.position === "1" ? winnerTime ?? "—" : (r.Time?.time ?? r.status);
+      const initials = (r.Driver.code ?? `${r.Driver.givenName.charAt(0)}${r.Driver.familyName.charAt(0)}`).toUpperCase();
+      const isWinner = r.position === "1";
+      html += `
+        <tr class="border-b border-track/30 hover:bg-surface-low/60 transition-colors reveal">
+          <td class="px-3 py-2.5">
+            <div class="flex items-center gap-2">
+              <span class="w-1 h-6" style="background:${color}"></span>
+              <span class="font-display font-extrabold text-xl tabular-nums ${isWinner ? "" : "text-fg"}" style="${isWinner ? `color:${color}` : ""}">${r.position}</span>
+            </div>
+          </td>
+          <td class="px-3 py-2.5">
+            <a href="/drivers/${r.Driver.driverId}" class="flex items-center gap-3 hover:text-electric">
+              ${photoMarkup({ wikiUrl: r.Driver.url, initials, color, size: "xs" })}
+              <div>
+                <div class="font-display font-bold uppercase tracking-tight leading-tight">${r.Driver.code ?? r.Driver.familyName.slice(0, 3).toUpperCase()}</div>
+                <div class="font-mono text-[10px] text-fg-subtle">#${r.number} · ${r.Driver.givenName} ${r.Driver.familyName}</div>
+              </div>
+            </a>
+          </td>
+          <td class="px-3 py-2.5 font-mono text-xs text-fg-muted hidden md:table-cell">${r.Constructor.name}</td>
+          <td class="px-3 py-2.5 text-right font-mono tabular-nums">${r.grid}</td>
+          <td class="px-3 py-2.5 text-right font-mono tabular-nums">${r.laps}</td>
+          <td class="px-3 py-2.5 text-right font-mono text-sm tabular-nums">${gap}</td>
+          <td class="px-3 py-2.5 text-right font-mono font-bold tabular-nums text-warning">${r.points}</td>
+        </tr>
+      `;
+    }
+    html += "</tbody></table></div>";
+    wrap.innerHTML = html;
+    staggerReveal(wrap.querySelectorAll<HTMLElement>(".reveal"), { delay: 30, stagger: 35 });
+    hydratePhotos(wrap);
+  }
+
+  function renderQualifying(race: JolpicaRace | null): void {
+    const wrap = document.getElementById("qualifying-wrap");
+    if (!wrap) return;
+    if (!race?.QualifyingResults?.length) {
+      wrap.innerHTML = `<p class="text-sm text-fg-subtle font-mono">No qualifying results available.</p>`;
+      return;
+    }
+    let html = `
+      <div class="border border-track bg-carbon clip-chamfer-tr overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-[10px] font-mono uppercase tracking-[0.2em] text-fg-subtle border-b border-track">
+            <tr>
+              <th class="text-left px-3 py-3 w-12">Pos</th>
+              <th class="text-left px-3 py-3">Driver</th>
+              <th class="text-right px-3 py-3">Q1</th>
+              <th class="text-right px-3 py-3">Q2</th>
+              <th class="text-right px-3 py-3">Q3</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    for (const r of race.QualifyingResults) {
+      const color = teamColourFor(r.Constructor.constructorId);
+      const initials = (r.Driver.code ?? `${r.Driver.givenName.charAt(0)}${r.Driver.familyName.charAt(0)}`).toUpperCase();
+      const isPole = r.position === "1";
+      html += `
+        <tr class="border-b border-track/30 reveal">
+          <td class="px-3 py-2.5">
+            <div class="flex items-center gap-2">
+              <span class="w-1 h-6" style="background:${color}"></span>
+              <span class="font-display font-extrabold text-xl tabular-nums ${isPole ? "" : "text-fg"}" style="${isPole ? `color:${color}` : ""}">${r.position}</span>
+            </div>
+          </td>
+          <td class="px-3 py-2.5">
+            <a href="/drivers/${r.Driver.driverId}" class="flex items-center gap-3 hover:text-electric">
+              ${photoMarkup({ wikiUrl: r.Driver.url, initials, color, size: "xs" })}
+              <div>
+                <div class="font-display font-bold uppercase tracking-tight">${r.Driver.code ?? r.Driver.familyName.slice(0, 3).toUpperCase()}</div>
+                <div class="font-mono text-[10px] text-fg-subtle">${r.Constructor.name}</div>
+              </div>
+            </a>
+          </td>
+          <td class="px-3 py-2.5 text-right font-mono text-fg-muted tabular-nums">${r.Q1 ?? "—"}</td>
+          <td class="px-3 py-2.5 text-right font-mono text-fg-muted tabular-nums">${r.Q2 ?? "—"}</td>
+          <td class="px-3 py-2.5 text-right font-mono text-electric tabular-nums">${r.Q3 ?? "—"}</td>
+        </tr>
+      `;
+    }
+    html += "</tbody></table></div>";
+    wrap.innerHTML = html;
+    staggerReveal(wrap.querySelectorAll<HTMLElement>(".reveal"), { delay: 30, stagger: 30 });
+    hydratePhotos(wrap);
+  }
+
+  function renderPitStops(race: JolpicaRace | null): void {
+    const wrap = document.getElementById("pits-wrap");
+    if (!wrap) return;
+    if (!race?.PitStops?.length) {
+      wrap.innerHTML = `<p class="text-sm text-fg-subtle font-mono">No pit-stop data available.</p>`;
+      return;
+    }
+    const byDriver = new Map<string, typeof race.PitStops>();
+    for (const p of race.PitStops) {
+      const arr = byDriver.get(p.driverId) ?? [];
+      arr.push(p);
+      byDriver.set(p.driverId, arr);
+    }
+    let html = `<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">`;
+    for (const [driverId, stops] of byDriver) {
+      const sorted = stops.sort((a, b) => Number(a.stop) - Number(b.stop));
+      html += `
+        <div class="reveal border border-track bg-carbon p-4 clip-chamfer-tr">
+          <div class="flex items-center justify-between mb-3">
+            <span class="font-display font-bold text-base uppercase">${driverId}</span>
+            <span class="font-mono text-[10px] text-fg-subtle uppercase tracking-[0.2em]">${stops.length} stops</span>
+          </div>
+          <ul class="space-y-1 font-mono text-xs">
+      `;
+      for (const s of sorted) {
+        html += `<li class="flex justify-between"><span class="text-fg-subtle">Lap ${s.lap}</span><span class="tabular-nums">${s.duration}s</span></li>`;
+      }
+      html += "</ul></div>";
+    }
+    html += "</div>";
+    wrap.innerHTML = html;
+    staggerReveal(wrap.querySelectorAll<HTMLElement>(".reveal"), { delay: 30, stagger: 40 });
+  }
+
+  async function load(): Promise<void> {
+    try {
+      const [scheduleRace, raceResults, qualResults, pits] = await Promise.allSettled([
+        getRace("current", round),
+        getRaceResults("current", round),
+        getQualifyingResults("current", round),
+        getPitStops("current", round),
+      ]);
+
+      const race = scheduleRace.status === "fulfilled" ? scheduleRace.value : null;
+      const results = raceResults.status === "fulfilled" ? raceResults.value : null;
+      const qual = qualResults.status === "fulfilled" ? qualResults.value : null;
+      const pitData = pits.status === "fulfilled" ? pits.value : null;
+
+      if (!race) {
+        document.getElementById("race-error")?.classList.remove("hidden");
+        return;
+      }
+
+      const country = race.Circuit.Location.country;
+      const flag = flagImgFromCountry(country, { size: "3.5rem" });
+
+      const tags = document.getElementById("race-tags");
+      if (tags) {
+        tags.innerHTML = `
+          <span class="inline-flex items-center gap-1 border border-racing/60 bg-racing/10 text-racing px-3 py-1 font-mono text-xs uppercase tracking-[0.2em]">Round ${race.round}</span>
+          <span class="inline-flex items-center gap-1 border border-track text-fg-muted bg-surface-low px-3 py-1 font-mono text-xs uppercase tracking-[0.2em]">Season ${race.season}</span>
+        `;
+      }
+
+      const badge = document.getElementById("race-country-badge");
+      if (badge) {
+        badge.innerHTML = `
+          <div class="flex flex-col items-center gap-2 px-4 py-3 border border-track bg-carbon clip-chamfer-tr">
+            ${flag}
+            <span class="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle text-center">${country}</span>
+          </div>
+        `;
+      }
+
+      bind("country", country);
+      bind("race_name", race.raceName);
+      bind("circuit_name", race.Circuit.circuitName);
+
+      setMetric(".metric-round", race.round);
+      setMetric(".metric-date", formatDate(`${race.date}T${race.time ?? "00:00:00Z"}`));
+      setMetric(".metric-location", race.Circuit.Location.locality);
+      setMetric(".metric-season", race.season);
+
+      renderSessions(race);
+      renderResults(results);
+      renderQualifying(qual);
+      renderPitStops(pitData);
+    } catch (err) {
+      console.error("[race detail] failed", err);
+      document.getElementById("race-error")?.classList.remove("hidden");
+    }
+  }
+
+  load();
+</script>

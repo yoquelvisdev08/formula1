@@ -1,0 +1,379 @@
+@import "tailwindcss";
+
+/* ============================================================
+   VELOCITY PRIME — Design System
+   F1 telemetry dashboard · Kinetic Precision
+   ============================================================ */
+
+@theme {
+  /* ---------- Color tokens ---------- */
+  --color-bg: #0b0b0b;
+  --color-surface: #131313;
+  --color-surface-dim: #0e0e0e;
+  --color-surface-low: #1c1b1b;
+  --color-surface-mid: #201f1f;
+  --color-surface-high: #2a2a2a;
+  --color-surface-highest: #353534;
+  --color-carbon: #1a1a1a;
+
+  --color-track: #2f3131;
+  --color-track-light: #3a3939;
+
+  --color-racing: #e10600;
+  --color-racing-bright: #ff2a1c;
+  --color-racing-soft: #ffb4a8;
+
+  --color-electric: #00d2ff;
+  --color-electric-bright: #47d6ff;
+  --color-electric-soft: #a5e7ff;
+
+  --color-warning: #ffd200;
+  --color-error: #ff5b52;
+  --color-success: #00ff88;
+
+  --color-fg: #ffffff;
+  --color-fg-muted: #e5e2e1;
+  --color-fg-subtle: #af8781;
+  --color-fg-dim: #6f7070;
+
+  /* ---------- Typography ---------- */
+  --font-display: "Archivo Narrow", "Arial Narrow", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+
+  --text-display-lg: 4.5rem;
+  --text-display-lg--line-height: 5rem;
+  --text-display-lg--letter-spacing: -0.04em;
+  --text-display-lg--font-weight: 800;
+
+  --text-headline-lg: 2.5rem;
+  --text-headline-lg--line-height: 3rem;
+  --text-headline-lg--letter-spacing: -0.02em;
+  --text-headline-lg--font-weight: 700;
+
+  --text-headline-md: 1.5rem;
+  --text-headline-md--line-height: 2rem;
+  --text-headline-md--font-weight: 600;
+
+  --text-label-md: 0.875rem;
+  --text-label-md--line-height: 1.25rem;
+  --text-label-md--letter-spacing: 0.05em;
+  --text-label-md--font-weight: 500;
+
+  --text-label-sm: 0.75rem;
+  --text-label-sm--line-height: 1rem;
+  --text-label-sm--letter-spacing: 0.05em;
+  --text-label-sm--font-weight: 500;
+
+  /* ---------- Spacing / layout ---------- */
+  --spacing-gutter: 1.5rem;
+  --container-max: 1440px;
+
+  /* ---------- Effects ---------- */
+  --shadow-glow-red: 0 0 24px rgba(225, 6, 0, 0.45);
+  --shadow-glow-blue: 0 0 24px rgba(0, 210, 255, 0.45);
+  --shadow-glow-yellow: 0 0 18px rgba(255, 210, 0, 0.45);
+  --shadow-inset-glow: inset 0 0 0 1px rgba(0, 210, 255, 0.35);
+}
+
+/* ============================================================
+   Global base
+   ============================================================ */
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(225, 6, 0, 0.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 100%, rgba(0, 210, 255, 0.08), transparent 60%),
+      var(--color-bg);
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background-color: var(--color-racing);
+    color: white;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-surface-dim);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-track);
+    border: 2px solid var(--color-surface-dim);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-racing);
+  }
+}
+
+/* ============================================================
+   Utilities — Velocity Prime signatures
+   ============================================================ */
+
+@layer utilities {
+  /* Carbon fiber background pattern */
+  .bg-carbon-weave {
+    background-color: var(--color-carbon);
+    background-image:
+      linear-gradient(45deg, rgba(255, 255, 255, 0.015) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.015) 75%),
+      linear-gradient(45deg, rgba(255, 255, 255, 0.015) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.015) 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 4px 4px;
+  }
+
+  /* Chamfered clip-path (engineered corner cut) */
+  .clip-chamfer-tr {
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+  }
+  .clip-chamfer-bl {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  }
+  .clip-chamfer-both {
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  }
+  .clip-chamfer-sm {
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  }
+
+  /* Diagonal speed line separator */
+  .border-speed-line {
+    position: relative;
+  }
+  .border-speed-line::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 -1px 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--color-racing) 20%, var(--color-racing) 80%, transparent);
+    transform: skewX(-15deg);
+  }
+
+  /* Italic lean for headlines (15deg) */
+  .lean {
+    transform: skewX(-8deg);
+    display: inline-block;
+  }
+
+  /* Live pulse */
+  .pulse-live {
+    animation: pulse-live 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse-live {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(225, 6, 0, 0.6); }
+    50% { opacity: 0.85; box-shadow: 0 0 0 8px rgba(225, 6, 0, 0); }
+  }
+
+  /* Scanning line animation for progress / loading */
+  .scan {
+    position: relative;
+    overflow: hidden;
+  }
+  .scan::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(0, 210, 255, 0.25), transparent);
+    transform: translateX(-100%);
+    animation: scan 1.8s linear infinite;
+  }
+  @keyframes scan {
+    100% { transform: translateX(100%); }
+  }
+
+  /* Telemetry segmented bar */
+  .segmented {
+    background-image: repeating-linear-gradient(
+      90deg,
+      currentColor 0,
+      currentColor 6px,
+      transparent 6px,
+      transparent 8px
+    );
+  }
+
+  /* Glow utilities */
+  .glow-red { box-shadow: var(--shadow-glow-red); }
+  .glow-blue { box-shadow: var(--shadow-glow-blue); }
+  .glow-yellow { box-shadow: var(--shadow-glow-yellow); }
+
+  /* Glassmorphism overlay (cockpit canopy) */
+  .canopy {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Fade in */
+  .fade-in {
+    animation: fade-in 0.4s ease-out both;
+  }
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Stagger reveal — element ships invisible, gains .reveal-in via JS */
+  .reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+  .reveal.reveal-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Diagonal racing stripe shimmer on hover */
+  .racing-stripe {
+    position: relative;
+    overflow: hidden;
+  }
+  .racing-stripe::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -100%;
+    width: 60%;
+    background: linear-gradient(
+      100deg,
+      transparent 0%,
+      rgba(255, 42, 28, 0) 30%,
+      rgba(255, 42, 28, 0.35) 50%,
+      rgba(255, 42, 28, 0) 70%,
+      transparent 100%
+    );
+    transform: skewX(-18deg);
+    transition: left 0.6s ease-out;
+    pointer-events: none;
+  }
+  .racing-stripe:hover::after,
+  .racing-stripe:focus-visible::after {
+    left: 130%;
+  }
+
+  /* Lift on hover for clickable cards */
+  .lift {
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s;
+    will-change: transform;
+  }
+  .lift:hover {
+    transform: translateY(-3px);
+  }
+
+  /* Tilt-ready container (JS handles transform via attachTilt) */
+  .tilt {
+    transform-style: preserve-3d;
+    transition: transform 0.25s ease-out;
+    will-change: transform;
+  }
+
+  /* Speed gauge bar */
+  .gauge-bar {
+    position: relative;
+    height: 6px;
+    background: var(--color-surface-low);
+    overflow: hidden;
+  }
+  .gauge-bar__fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: linear-gradient(90deg, var(--color-electric) 0%, var(--color-racing) 100%);
+    transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Blink cursor (live data feel) */
+  .cursor-blink::after {
+    content: "▍";
+    color: var(--color-racing);
+    animation: blink 1s steps(2, end) infinite;
+    margin-left: 2px;
+  }
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  /* Engine-rev "shake" used on big stat updates */
+  .rev {
+    animation: rev 0.4s ease-out;
+  }
+  @keyframes rev {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.06); text-shadow: 0 0 18px rgba(225, 6, 0, 0.6); }
+    100% { transform: scale(1); text-shadow: none; }
+  }
+
+  /* Body racing stripe accent */
+  .pinstripe {
+    background-image: linear-gradient(
+      135deg,
+      rgba(225, 6, 0, 0.1) 0%,
+      rgba(225, 6, 0, 0.1) 2px,
+      transparent 2px,
+      transparent 12px
+    );
+  }
+
+  /* Live "online" dot */
+  .live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-racing);
+    box-shadow: 0 0 0 0 rgba(225, 6, 0, 0.6);
+    animation: live-dot-pulse 1.6s ease-out infinite;
+  }
+  @keyframes live-dot-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(225, 6, 0, 0.6); }
+    100% { box-shadow: 0 0 0 12px rgba(225, 6, 0, 0); }
+  }
+
+  /* Marquee for ticker style live text */
+  .marquee {
+    display: flex;
+    overflow: hidden;
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+  .marquee__track {
+    display: flex;
+    gap: 3rem;
+    animation: marquee 30s linear infinite;
+    white-space: nowrap;
+  }
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* Text utilities */
+  .font-display { font-family: var(--font-display); }
+  .font-mono { font-family: var(--font-mono); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1 !important; transform: none !important; }
+    .racing-stripe::after { display: none; }
+    .marquee__track { animation: none; }
+    .rev { animation: none; }
+  }
+}

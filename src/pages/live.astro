@@ -1,0 +1,754 @@
+---
+import Base from "../layouts/Base.astro";
+import Card from "../components/ui/Card.astro";
+import Chip from "../components/ui/Chip.astro";
+import Stat from "../components/ui/Stat.astro";
+import LiveBadge from "../components/ui/LiveBadge.astro";
+import SectionHeader from "../components/ui/SectionHeader.astro";
+import Skeleton from "../components/ui/Skeleton.astro";
+import TrackMap from "../components/TrackMap.astro";
+---
+
+<Base title="Race Center · Velocity Prime" active="live">
+  <!-- ============================================================
+       HEADER strip — adapts to live vs replay mode
+       ============================================================ -->
+  <section class="pt-8 pb-6 border-b border-track/60">
+    <div class="flex items-start justify-between flex-wrap gap-4">
+      <div>
+        <div class="flex items-center gap-3 flex-wrap mb-2">
+          <span id="mode-live-pill" class="hidden"><LiveBadge /></span>
+          <span id="mode-replay-pill" class="hidden">
+            <Chip tone="blue" size="md">Race Replay</Chip>
+          </span>
+          <Chip tone="red" size="md"><span data-bind="header-tag-1">Race Center</span></Chip>
+          <Chip tone="default" size="md"><span data-bind="header-tag-2">Loading…</span></Chip>
+        </div>
+        <h1 class="font-display text-4xl md:text-6xl font-extrabold uppercase tracking-tight leading-none">
+          <span class="text-fg-muted text-xl font-bold block mb-1" data-bind="header-sub">—</span>
+          <span data-bind="header-title">Race Center</span>
+        </h1>
+        <p class="mt-2 text-sm text-fg-subtle font-mono" data-bind="header-meta">—</p>
+      </div>
+
+      <div id="mode-stats" class="hidden grid grid-cols-4 gap-4">
+        <Stat label="Air" value="—" unit="°C" tone="blue" class="weather-air" />
+        <Stat label="Track" value="—" unit="°C" tone="red" class="weather-track" />
+        <Stat label="Wind" value="—" unit="kph" class="weather-wind" />
+        <Stat label="Cond." value="DRY" class="weather-cond" />
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       LIVE MODE — visible only when OpenF1 reports an active session
+       ============================================================ -->
+  <div id="live-mode" class="hidden">
+    <section class="mt-8 mb-10 reveal">
+      <TrackMap />
+    </section>
+
+    <section class="mt-8 mb-12 reveal">
+      <SectionHeader
+        eyebrow="Timing Tower"
+        title="Live Order"
+        description="Position, gap, last lap, best lap and tyre stint for every driver in this session."
+      />
+      <Card chamfer={false} accent="none" class="!p-0">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="text-[10px] font-mono uppercase tracking-[0.2em] text-fg-subtle border-b border-track">
+              <tr>
+                <th class="text-left px-3 py-3 w-12">Pos</th>
+                <th class="text-left px-3 py-3">Driver</th>
+                <th class="text-right px-3 py-3">Gap</th>
+                <th class="text-right px-3 py-3">Interval</th>
+                <th class="text-right px-3 py-3">Last Lap</th>
+                <th class="text-right px-3 py-3">Best Lap</th>
+                <th class="text-right px-3 py-3 hidden md:table-cell">S1</th>
+                <th class="text-right px-3 py-3 hidden md:table-cell">S2</th>
+                <th class="text-right px-3 py-3 hidden md:table-cell">S3</th>
+                <th class="text-center px-3 py-3">Tyre</th>
+              </tr>
+            </thead>
+            <tbody id="timing-tower">
+              <tr><td colspan="10" class="p-4"><Skeleton rows={8} height="h-8" /></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </section>
+
+    <section class="grid lg:grid-cols-3 gap-6 mb-12 reveal">
+      <Card title="Tyre Stints" subtitle="Compound history" accent="yellow" class="lg:col-span-2">
+        <div id="stints-panel" class="flex flex-col gap-2 max-h-[420px] overflow-y-auto">
+          <Skeleton rows={6} height="h-10" />
+        </div>
+      </Card>
+      <Card title="Race Control" subtitle="Flags & messages" accent="red">
+        <ul id="race-control" class="flex flex-col gap-2 max-h-[420px] overflow-y-auto pr-1">
+          <li class="text-sm text-fg-subtle font-mono">Loading messages…</li>
+        </ul>
+      </Card>
+    </section>
+
+    <section class="grid lg:grid-cols-2 gap-6 mb-12 reveal">
+      <Card title="Pit Activity" subtitle="Recent stops" accent="blue">
+        <ul id="pit-panel" class="flex flex-col gap-2 max-h-80 overflow-y-auto">
+          <li class="text-sm text-fg-subtle font-mono">Loading…</li>
+        </ul>
+      </Card>
+      <Card title="Team Radio" subtitle="Latest clips" accent="none">
+        <ul id="radio-panel" class="flex flex-col gap-2 max-h-80 overflow-y-auto">
+          <li class="text-sm text-fg-subtle font-mono">Loading…</li>
+        </ul>
+      </Card>
+    </section>
+  </div>
+
+  <!-- ============================================================
+       REPLAY MODE — full analytical view of the last race
+       ============================================================ -->
+  <div id="replay-mode">
+    <section class="mt-10 mb-10 reveal" id="podium-section">
+      <SectionHeader eyebrow="Podium" title="The Result">
+        <div slot="actions">
+          <a id="replay-race-link" href="/calendar" class="font-mono text-[10px] uppercase tracking-[0.2em] text-electric hover:text-fg">Race detail →</a>
+        </div>
+      </SectionHeader>
+      <div id="podium-strip" class="grid grid-cols-3 gap-3">
+        <div class="h-48 bg-surface-low border border-track/60 scan"></div>
+        <div class="h-56 bg-surface-low border border-track/60 scan"></div>
+        <div class="h-44 bg-surface-low border border-track/60 scan"></div>
+      </div>
+    </section>
+
+    <section class="mt-10 mb-10 reveal">
+      <SectionHeader
+        eyebrow="Position Evolution"
+        title="How the Race Played Out"
+        description="Each driver's position lap-by-lap. Higher = leading. Click a driver below to highlight their line."
+      />
+      <Card chamfer={false} class="!p-0">
+        <div class="relative">
+          <svg id="position-chart" viewBox="0 0 1200 460" preserveAspectRatio="none" class="w-full h-[460px] block"></svg>
+          <div id="position-tooltip" class="hidden absolute pointer-events-none bg-bg/95 border border-electric/60 px-3 py-2 font-mono text-[11px] text-fg shadow-lg"></div>
+        </div>
+        <div id="chart-legend" class="flex flex-wrap gap-2 p-4 border-t border-track/60"></div>
+      </Card>
+    </section>
+
+    <section class="mt-10 mb-10 reveal">
+      <SectionHeader
+        eyebrow="Strategy"
+        title="Pit Stop Timeline"
+        description="When each driver pitted and how long each stop took. Ordered by finishing position."
+      />
+      <Card chamfer={false} class="!p-4">
+        <div id="pit-timeline" class="flex flex-col gap-2">
+          <Skeleton rows={6} height="h-8" />
+        </div>
+      </Card>
+    </section>
+
+    <section class="mt-10 mb-12 reveal">
+      <SectionHeader eyebrow="Classification" title="Full Result" />
+      <div id="replay-results">
+        <Skeleton rows={8} height="h-12" />
+      </div>
+    </section>
+  </div>
+</Base>
+
+<script>
+  import { openf1 } from "../lib/openf1/client";
+  import { fetchLiveSnapshot, isSessionLive } from "../lib/live";
+  import {
+    getRaceResults,
+    getRaceLaps,
+    getPitStops,
+    teamColourFor,
+  } from "../lib/jolpica";
+  import { photoMarkup, hydratePhotos } from "../lib/wiki";
+  import { swr } from "../lib/cache";
+  import { staggerReveal, countUp } from "../lib/anim";
+  import {
+    formatLapTime,
+    formatGap,
+    formatSector,
+    compoundLabel,
+    compoundColor,
+    teamHex,
+    flagImg,
+    formatTime,
+    formatDate,
+  } from "../lib/format";
+  import type { JolpicaRace, JolpicaLap } from "../lib/jolpica";
+
+  const LIVE_REFRESH_MS = 20_000;
+  const MODE_PROBE_MS = 60_000;
+
+  function bind(name: string, value: string): void {
+    document.querySelectorAll<HTMLElement>(`[data-bind="${name}"]`).forEach((el) => {
+      el.textContent = value;
+    });
+  }
+
+  function showLiveMode(): void {
+    document.getElementById("live-mode")?.classList.remove("hidden");
+    document.getElementById("replay-mode")?.classList.add("hidden");
+    document.getElementById("mode-live-pill")?.classList.remove("hidden");
+    document.getElementById("mode-replay-pill")?.classList.add("hidden");
+    document.getElementById("mode-stats")?.classList.remove("hidden");
+  }
+
+  function showReplayMode(): void {
+    document.getElementById("live-mode")?.classList.add("hidden");
+    document.getElementById("replay-mode")?.classList.remove("hidden");
+    document.getElementById("mode-live-pill")?.classList.add("hidden");
+    document.getElementById("mode-replay-pill")?.classList.remove("hidden");
+    document.getElementById("mode-stats")?.classList.add("hidden");
+  }
+
+  /* ============================================================
+     MODE DETECTION
+     ============================================================ */
+  let mode: "live" | "replay" = "replay";
+
+  async function probeMode(): Promise<"live" | "replay"> {
+    try {
+      const sessions = await openf1.sessions({ session_key: "latest" }, { ttl: 30_000 });
+      const session = sessions.at(-1);
+      if (session && isSessionLive(session)) return "live";
+    } catch { /* OpenF1 down — replay */ }
+    return "replay";
+  }
+
+  /* ============================================================
+     LIVE MODE — full timing tower, track map, race control
+     ============================================================ */
+
+  async function refreshLiveTiming(): Promise<void> {
+    try {
+      const snapshot = await fetchLiveSnapshot();
+      const { session, rows, weather } = snapshot;
+
+      if (session) {
+        bind("header-tag-1", session.country_code ?? "—");
+        bind("header-tag-2", session.session_name);
+        const subEl = document.querySelector(`[data-bind="header-sub"]`);
+        if (subEl) subEl.innerHTML = `${flagImg(session.country_code, { size: "1.2em" })} ${session.country_name}`.trim();
+        bind("header-title", session.location);
+        bind("header-meta", `Auto-refresh every ${LIVE_REFRESH_MS / 1000}s · ${session.session_type}`);
+      }
+
+      if (weather) {
+        countUp(document.querySelector(".weather-air .font-display") as HTMLElement, weather.air_temperature, { decimals: 0 });
+        countUp(document.querySelector(".weather-track .font-display") as HTMLElement, weather.track_temperature, { decimals: 0 });
+        countUp(document.querySelector(".weather-wind .font-display") as HTMLElement, weather.wind_speed, { decimals: 0 });
+        const cond = document.querySelector(".weather-cond .font-display");
+        if (cond) cond.textContent = weather.rainfall > 0 ? "WET" : "DRY";
+      }
+
+      const tbody = document.getElementById("timing-tower");
+      if (!tbody) return;
+
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="10" class="p-6 text-center text-fg-subtle font-mono text-sm">No live data — falling back to replay.</td></tr>`;
+        mode = "replay";
+        showReplayMode();
+        loadReplay();
+        return;
+      }
+
+      const bestS1 = Math.min(...rows.map((r) => r.sector_1 ?? Infinity));
+      const bestS2 = Math.min(...rows.map((r) => r.sector_2 ?? Infinity));
+      const bestS3 = Math.min(...rows.map((r) => r.sector_3 ?? Infinity));
+      const bestLap = Math.min(...rows.map((r) => r.best_lap ?? Infinity));
+
+      tbody.innerHTML = "";
+      for (const row of rows) {
+        const color = teamHex(row.driver.team_colour);
+        const isBestLap = row.best_lap != null && row.best_lap === bestLap;
+        const tr = document.createElement("tr");
+        tr.className = "border-b border-track/30 hover:bg-surface-low/60 transition-colors";
+        tr.innerHTML = `
+          <td class="px-3 py-2.5"><div class="flex items-center gap-2"><span class="w-1 h-6" style="background:${color}"></span><span class="font-display font-extrabold text-xl tabular-nums ${row.position === 1 ? "text-racing" : "text-fg"}">${row.position ?? "—"}</span></div></td>
+          <td class="px-3 py-2.5">
+            <div class="flex items-center gap-3">
+              <span class="font-mono text-[10px] text-fg-subtle w-6">#${row.driver.driver_number}</span>
+              <div>
+                <div class="font-display font-bold uppercase tracking-tight">${row.driver.name_acronym}</div>
+                <div class="font-mono text-[10px] text-fg-subtle uppercase truncate max-w-[140px]">${row.driver.team_name}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-3 py-2.5 text-right font-mono tabular-nums">${formatGap(row.gap_to_leader)}</td>
+          <td class="px-3 py-2.5 text-right font-mono tabular-nums text-fg-subtle">${formatGap(row.interval)}</td>
+          <td class="px-3 py-2.5 text-right font-mono tabular-nums">${formatLapTime(row.last_lap)}</td>
+          <td class="px-3 py-2.5 text-right font-mono tabular-nums ${isBestLap ? "text-electric font-bold" : ""}">${formatLapTime(row.best_lap)}</td>
+          <td class="px-3 py-2.5 text-right font-mono tabular-nums hidden md:table-cell ${row.sector_1 === bestS1 ? "text-electric" : "text-fg-muted"}">${formatSector(row.sector_1)}</td>
+          <td class="px-3 py-2.5 text-right font-mono tabular-nums hidden md:table-cell ${row.sector_2 === bestS2 ? "text-electric" : "text-fg-muted"}">${formatSector(row.sector_2)}</td>
+          <td class="px-3 py-2.5 text-right font-mono tabular-nums hidden md:table-cell ${row.sector_3 === bestS3 ? "text-electric" : "text-fg-muted"}">${formatSector(row.sector_3)}</td>
+          <td class="px-3 py-2.5 text-center"><span class="inline-flex h-7 w-7 items-center justify-center border-2 font-mono text-xs font-bold ${compoundColor(row.compound)}" style="border-color: currentColor">${compoundLabel(row.compound)}</span></td>
+        `;
+        tbody.appendChild(tr);
+      }
+    } catch (err) {
+      console.warn("[live] timing failed → falling back to replay", err);
+      mode = "replay";
+      showReplayMode();
+      loadReplay();
+    }
+  }
+
+  async function refreshStints(): Promise<void> {
+    try {
+      const [stints, drivers] = await Promise.all([
+        openf1.stints({ session_key: "latest" }),
+        openf1.drivers({ session_key: "latest" }),
+      ]);
+      const panel = document.getElementById("stints-panel");
+      if (!panel) return;
+      const driverMap = new Map(drivers.map((d) => [d.driver_number, d]));
+      const byDriver = new Map<number, typeof stints>();
+      for (const s of stints) {
+        const arr = byDriver.get(s.driver_number) ?? [];
+        arr.push(s);
+        byDriver.set(s.driver_number, arr);
+      }
+      if (!byDriver.size) {
+        panel.innerHTML = `<p class="text-sm text-fg-subtle font-mono">No stint data.</p>`;
+        return;
+      }
+      const maxLap = Math.max(...stints.map((s) => s.lap_end ?? 0), 1);
+      panel.innerHTML = "";
+      for (const [num, list] of byDriver) {
+        const driver = driverMap.get(num);
+        if (!driver) continue;
+        const sorted = list.sort((a, b) => a.stint_number - b.stint_number);
+        const row = document.createElement("div");
+        row.className = "flex items-center gap-3 py-1.5";
+        const segments = sorted.map((s) => {
+          const widthPct = ((s.lap_end - s.lap_start + 1) / maxLap) * 100;
+          return `<span title="${s.compound} (laps ${s.lap_start}-${s.lap_end})" class="inline-block h-4 ${compoundColor(s.compound)}" style="width:${widthPct}%; background: currentColor; opacity:.6"></span>`;
+        }).join("");
+        row.innerHTML = `
+          <span class="w-12 font-mono text-xs uppercase" style="color:${teamHex(driver.team_colour)}">${driver.name_acronym}</span>
+          <span class="flex-1 flex h-4 bg-surface-low border border-track">${segments}</span>
+        `;
+        panel.appendChild(row);
+      }
+    } catch { /* silent — UI shows skeleton */ }
+  }
+
+  async function refreshRaceControl(): Promise<void> {
+    try {
+      const messages = await openf1.raceControl({ session_key: "latest" });
+      const list = document.getElementById("race-control");
+      if (!list) return;
+      const recent = messages.slice(-20).reverse();
+      if (!recent.length) {
+        list.innerHTML = `<li class="text-sm text-fg-subtle font-mono">No messages.</li>`;
+        return;
+      }
+      list.innerHTML = "";
+      for (const msg of recent) {
+        const isFlag = msg.flag && msg.flag !== "CLEAR";
+        const li = document.createElement("li");
+        li.className = "flex gap-2 text-xs font-mono border-l-2 pl-3 py-1 " + (isFlag ? "border-warning text-warning" : "border-track text-fg-muted");
+        li.innerHTML = `<span class="text-fg-subtle shrink-0 w-12">${formatTime(msg.date)}</span><span class="flex-1">${msg.message}</span>`;
+        list.appendChild(li);
+      }
+    } catch { /* silent */ }
+  }
+
+  async function refreshPit(): Promise<void> {
+    try {
+      const [pits, drivers] = await Promise.all([
+        openf1.pit({ session_key: "latest" }),
+        openf1.drivers({ session_key: "latest" }),
+      ]);
+      const list = document.getElementById("pit-panel");
+      if (!list) return;
+      const driverMap = new Map(drivers.map((d) => [d.driver_number, d]));
+      const recent = pits.slice(-15).reverse();
+      if (!recent.length) {
+        list.innerHTML = `<li class="text-sm text-fg-subtle font-mono">No pit activity yet.</li>`;
+        return;
+      }
+      list.innerHTML = "";
+      for (const p of recent) {
+        const d = driverMap.get(p.driver_number);
+        if (!d) continue;
+        const li = document.createElement("li");
+        li.className = "flex items-center gap-3 text-xs font-mono py-1 border-b border-track/30";
+        li.innerHTML = `<span class="font-display font-bold text-sm uppercase" style="color:${teamHex(d.team_colour)}">${d.name_acronym}</span><span class="text-fg-subtle">Lap ${p.lap_number}</span><span class="ml-auto tabular-nums">${p.pit_duration?.toFixed(1) ?? "—"}s</span>`;
+        list.appendChild(li);
+      }
+    } catch { /* silent */ }
+  }
+
+  async function refreshRadio(): Promise<void> {
+    try {
+      const [radios, drivers] = await Promise.all([
+        openf1.teamRadio({ session_key: "latest" }),
+        openf1.drivers({ session_key: "latest" }),
+      ]);
+      const list = document.getElementById("radio-panel");
+      if (!list) return;
+      const driverMap = new Map(drivers.map((d) => [d.driver_number, d]));
+      const recent = radios.slice(-10).reverse();
+      if (!recent.length) {
+        list.innerHTML = `<li class="text-sm text-fg-subtle font-mono">No team radio yet.</li>`;
+        return;
+      }
+      list.innerHTML = "";
+      for (const r of recent) {
+        const d = driverMap.get(r.driver_number);
+        if (!d) continue;
+        const li = document.createElement("li");
+        li.className = "flex flex-col gap-1 py-1 border-b border-track/30";
+        li.innerHTML = `<div class="flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.2em] text-fg-subtle"><span class="font-bold" style="color:${teamHex(d.team_colour)}">${d.name_acronym}</span><span>${formatTime(r.date)}</span></div><audio controls preload="none" src="${r.recording_url}" class="w-full h-8"></audio>`;
+        list.appendChild(li);
+      }
+    } catch { /* silent */ }
+  }
+
+  function tickLive(): void {
+    refreshLiveTiming();
+    refreshStints();
+    refreshRaceControl();
+    refreshPit();
+    refreshRadio();
+  }
+
+  /* ============================================================
+     REPLAY MODE — Jolpica-powered last-race analysis
+     ============================================================ */
+
+  function renderHeaderReplay(race: JolpicaRace): void {
+    const winner = race.Results?.[0];
+    bind("header-tag-1", `R${race.round}`);
+    bind("header-tag-2", "Last Round");
+    bind("header-sub", race.Circuit.Location.country);
+    bind("header-title", race.raceName);
+    const winnerText = winner
+      ? `Winner: ${winner.Driver.givenName} ${winner.Driver.familyName} (${winner.Constructor.name}) · ${formatDate(race.date)}`
+      : `${race.Circuit.circuitName} · ${formatDate(race.date)}`;
+    bind("header-meta", winnerText);
+  }
+
+  function renderPodium(race: JolpicaRace): void {
+    const strip = document.getElementById("podium-strip");
+    const link = document.getElementById("replay-race-link") as HTMLAnchorElement | null;
+    if (!strip || !race.Results?.length) return;
+    if (link) link.href = `/races/${race.round}`;
+
+    const podium = race.Results.slice(0, 3);
+    const arranged = [podium[1], podium[0], podium[2]].filter(Boolean);
+    const heights = ["min-h-[260px]", "min-h-[320px]", "min-h-[240px]"];
+    strip.innerHTML = "";
+    arranged.forEach((r, idx) => {
+      const color = teamColourFor(r.Constructor.constructorId);
+      const isWinner = r.position === "1";
+      const initials = (r.Driver.code ?? `${r.Driver.givenName.charAt(0)}${r.Driver.familyName.charAt(0)}`).toUpperCase();
+      const card = document.createElement("div");
+      card.className = `reveal lift relative flex flex-col items-center text-center justify-end border bg-carbon p-5 clip-chamfer-tr ${heights[idx]}`;
+      card.style.borderColor = isWinner ? color : "#2f3131";
+      card.innerHTML = `
+        <div class="absolute top-0 left-0 right-0 h-1.5" style="background:${color}"></div>
+        <div class="absolute top-4 left-4 font-display text-5xl font-extrabold tabular-nums" style="color:${isWinner ? color : '#6f7070'}">${r.position}</div>
+        ${photoMarkup({ wikiUrl: r.Driver.url, initials, color, size: isWinner ? "xl" : "lg", class: "mx-auto mb-4" })}
+        <div class="font-display text-xl font-bold uppercase tracking-tight leading-tight">${r.Driver.givenName.charAt(0)}. ${r.Driver.familyName}</div>
+        <div class="font-mono text-[10px] uppercase tracking-[0.2em] mt-1" style="color:${color}">${r.Constructor.name}</div>
+        <div class="mt-3 font-mono text-xs text-fg-subtle tabular-nums">${r.Time?.time ?? r.status} · +${r.points}pts</div>
+      `;
+      strip.appendChild(card);
+    });
+    hydratePhotos(strip);
+    staggerReveal(strip.querySelectorAll<HTMLElement>(".reveal"), { delay: 50, stagger: 120 });
+  }
+
+  function renderPositionChart(race: JolpicaRace, laps: JolpicaLap[]): void {
+    const svg = document.getElementById("position-chart") as SVGSVGElement | null;
+    const legend = document.getElementById("chart-legend");
+    const tooltip = document.getElementById("position-tooltip");
+    if (!svg || !laps.length || !race.Results?.length) return;
+
+    const W = 1200, H = 460, P = { l: 36, r: 100, t: 16, b: 30 };
+    const innerW = W - P.l - P.r;
+    const innerH = H - P.t - P.b;
+
+    const maxLap = laps.length;
+    const driverColor = new Map<string, string>();
+    const driverName = new Map<string, string>();
+    for (const r of race.Results) {
+      driverColor.set(r.Driver.driverId, teamColourFor(r.Constructor.constructorId));
+      driverName.set(r.Driver.driverId, r.Driver.code ?? r.Driver.familyName.slice(0, 3).toUpperCase());
+    }
+    const driverIds = race.Results.map((r) => r.Driver.driverId);
+    const numDrivers = driverIds.length || 20;
+
+    // Build per-driver path of (lap, position) points
+    const lines = new Map<string, [number, number][]>();
+    for (const id of driverIds) lines.set(id, []);
+    for (const lap of laps) {
+      const lapNum = Number(lap.number);
+      for (const t of lap.Timings) {
+        const arr = lines.get(t.driverId);
+        if (arr) arr.push([lapNum, Number(t.position)]);
+      }
+    }
+
+    const xFor = (lap: number): number => P.l + ((lap - 1) / Math.max(maxLap - 1, 1)) * innerW;
+    const yFor = (pos: number): number => P.t + ((pos - 1) / Math.max(numDrivers - 1, 1)) * innerH;
+
+    // Build SVG
+    let html = "";
+
+    // Grid
+    for (let p = 1; p <= numDrivers; p++) {
+      const y = yFor(p);
+      html += `<line x1="${P.l}" x2="${W - P.r}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,0.04)" />`;
+      html += `<text x="${P.l - 6}" y="${y + 3}" text-anchor="end" font-family="JetBrains Mono" font-size="9" fill="#6f7070">${p}</text>`;
+    }
+    const lapStep = maxLap > 50 ? 10 : 5;
+    for (let l = 1; l <= maxLap; l += lapStep) {
+      const x = xFor(l);
+      html += `<line x1="${x}" x2="${x}" y1="${P.t}" y2="${H - P.b}" stroke="rgba(255,255,255,0.04)" />`;
+      html += `<text x="${x}" y="${H - P.b + 18}" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#6f7070">L${l}</text>`;
+    }
+
+    // Driver lines
+    for (const id of driverIds) {
+      const points = lines.get(id);
+      if (!points || points.length < 2) continue;
+      const color = driverColor.get(id) ?? "#6f7070";
+      const path = points
+        .map((p, i) => `${i === 0 ? "M" : "L"} ${xFor(p[0]).toFixed(1)} ${yFor(p[1]).toFixed(1)}`)
+        .join(" ");
+      html += `<path data-driver="${id}" d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7" class="chart-line" />`;
+    }
+
+    // Final-position labels on the right
+    for (const r of race.Results.slice(0, 20)) {
+      const id = r.Driver.driverId;
+      const points = lines.get(id);
+      if (!points?.length) continue;
+      const finalPos = Number(r.position);
+      const y = yFor(finalPos);
+      const x = W - P.r + 8;
+      const color = driverColor.get(id) ?? "#6f7070";
+      const name = driverName.get(id) ?? id;
+      html += `<text data-driver-label="${id}" x="${x}" y="${y + 3}" font-family="JetBrains Mono" font-size="10" fill="${color}" font-weight="bold">${name}</text>`;
+    }
+
+    svg.innerHTML = html;
+
+    // Legend with click-to-highlight
+    if (legend) {
+      legend.innerHTML = "";
+      for (const r of race.Results) {
+        const id = r.Driver.driverId;
+        const color = driverColor.get(id) ?? "#6f7070";
+        const btn = document.createElement("button");
+        btn.dataset.driver = id;
+        btn.className = "legend-chip flex items-center gap-1.5 px-2 py-1 border border-track bg-surface-low font-mono text-[10px] uppercase tracking-wider hover:border-fg transition-colors";
+        btn.innerHTML = `<span class="w-2 h-2" style="background:${color}"></span><span>${driverName.get(id)}</span>`;
+        btn.addEventListener("click", () => highlightDriver(id === highlighted ? null : id));
+        legend.appendChild(btn);
+      }
+    }
+
+    // Hover tooltip — pick the nearest driver line at the cursor's lap
+    let highlighted: string | null = null;
+    function highlightDriver(id: string | null): void {
+      highlighted = id;
+      svg!.querySelectorAll<SVGPathElement>(".chart-line").forEach((p) => {
+        const d = p.dataset.driver;
+        if (!id) { p.setAttribute("opacity", "0.7"); p.setAttribute("stroke-width", "2"); }
+        else if (d === id) { p.setAttribute("opacity", "1"); p.setAttribute("stroke-width", "3.5"); }
+        else { p.setAttribute("opacity", "0.18"); p.setAttribute("stroke-width", "2"); }
+      });
+      legend?.querySelectorAll<HTMLElement>(".legend-chip").forEach((c) => {
+        c.style.opacity = !id || c.dataset.driver === id ? "1" : "0.4";
+      });
+    }
+
+    svg.addEventListener("mousemove", (e) => {
+      if (!tooltip) return;
+      const rect = svg.getBoundingClientRect();
+      const xRatio = (e.clientX - rect.left) / rect.width;
+      const lap = Math.max(1, Math.min(maxLap, Math.round(1 + xRatio * (maxLap - 1))));
+      const yRatio = (e.clientY - rect.top) / rect.height;
+      const targetPos = Math.max(1, Math.min(numDrivers, Math.round(1 + ((yRatio * H - P.t) / innerH) * (numDrivers - 1))));
+      // Find driver closest to (lap, targetPos)
+      let bestId: string | null = null;
+      let bestDistance = Infinity;
+      for (const id of driverIds) {
+        const point = lines.get(id)?.find((p) => p[0] === lap);
+        if (!point) continue;
+        const dist = Math.abs(point[1] - targetPos);
+        if (dist < bestDistance) { bestDistance = dist; bestId = id; }
+      }
+      if (bestId == null) { tooltip.classList.add("hidden"); return; }
+      const point = lines.get(bestId)!.find((p) => p[0] === lap)!;
+      tooltip.classList.remove("hidden");
+      tooltip.style.left = `${e.clientX - rect.left + 12}px`;
+      tooltip.style.top = `${e.clientY - rect.top - 30}px`;
+      tooltip.style.borderColor = driverColor.get(bestId) ?? "#00d2ff";
+      tooltip.innerHTML = `<strong style="color:${driverColor.get(bestId)}">${driverName.get(bestId)}</strong> · L${lap} · P${point[1]}`;
+    });
+    svg.addEventListener("mouseleave", () => tooltip?.classList.add("hidden"));
+  }
+
+  function renderPitTimeline(race: JolpicaRace, pitRace: JolpicaRace | null): void {
+    const wrap = document.getElementById("pit-timeline");
+    if (!wrap || !race.Results?.length) return;
+
+    const stops = pitRace?.PitStops ?? [];
+    const totalLaps = Math.max(...(race.Results.map((r) => Number(r.laps)) ?? [60]));
+    const byDriver = new Map<string, typeof stops>();
+    for (const s of stops) {
+      const arr = byDriver.get(s.driverId) ?? [];
+      arr.push(s);
+      byDriver.set(s.driverId, arr);
+    }
+
+    if (!stops.length) {
+      wrap.innerHTML = `<p class="text-sm text-fg-subtle font-mono p-2">No pit-stop data available for this race.</p>`;
+      return;
+    }
+
+    wrap.innerHTML = "";
+    for (const r of race.Results) {
+      const driverStops = byDriver.get(r.Driver.driverId) ?? [];
+      const color = teamColourFor(r.Constructor.constructorId);
+      const row = document.createElement("div");
+      row.className = "reveal flex items-center gap-3 py-1.5";
+      const markers = driverStops
+        .map((s) => {
+          const pct = (Number(s.lap) / totalLaps) * 100;
+          return `<span title="Lap ${s.lap} · ${s.duration}s" class="absolute top-0 bottom-0 w-2 -translate-x-1/2" style="left:${pct.toFixed(1)}%; background:${color}; box-shadow:0 0 6px ${color}"></span>`;
+        })
+        .join("");
+      const isWinner = r.position === "1";
+      row.innerHTML = `
+        <span class="font-display text-sm font-extrabold w-6 text-right tabular-nums ${isWinner ? "" : "text-fg-muted"}" style="${isWinner ? `color:${color}` : ""}">${r.position}</span>
+        <span class="font-mono text-[11px] uppercase tracking-wider w-12 truncate" style="color:${color}">${r.Driver.code ?? r.Driver.familyName.slice(0, 3).toUpperCase()}</span>
+        <span class="relative flex-1 h-4 bg-surface-low border border-track/40 overflow-visible">${markers}</span>
+        <span class="font-mono text-[10px] text-fg-subtle w-12 text-right tabular-nums">${driverStops.length}×</span>
+      `;
+      wrap.appendChild(row);
+    }
+    staggerReveal(wrap.querySelectorAll<HTMLElement>(".reveal"), { delay: 30, stagger: 20 });
+  }
+
+  function renderReplayResults(race: JolpicaRace): void {
+    const wrap = document.getElementById("replay-results");
+    if (!wrap || !race.Results?.length) return;
+    let html = `
+      <div class="border border-track bg-carbon clip-chamfer-tr overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-[10px] font-mono uppercase tracking-[0.2em] text-fg-subtle border-b border-track">
+            <tr>
+              <th class="text-left px-3 py-3 w-12">Pos</th>
+              <th class="text-left px-3 py-3">Driver</th>
+              <th class="text-left px-3 py-3 hidden md:table-cell">Constructor</th>
+              <th class="text-right px-3 py-3 w-16">Grid</th>
+              <th class="text-right px-3 py-3">Time / Status</th>
+              <th class="text-right px-3 py-3 w-16">Pts</th>
+            </tr>
+          </thead><tbody>
+    `;
+    for (const r of race.Results) {
+      const color = teamColourFor(r.Constructor.constructorId);
+      const initials = (r.Driver.code ?? `${r.Driver.givenName.charAt(0)}${r.Driver.familyName.charAt(0)}`).toUpperCase();
+      const isWinner = r.position === "1";
+      html += `
+        <tr class="border-b border-track/30 hover:bg-surface-low/60">
+          <td class="px-3 py-2.5"><div class="flex items-center gap-2"><span class="w-1 h-6" style="background:${color}"></span><span class="font-display font-extrabold text-lg tabular-nums ${isWinner ? "" : "text-fg"}" style="${isWinner ? `color:${color}` : ""}">${r.position}</span></div></td>
+          <td class="px-3 py-2.5">
+            <a href="/drivers/${r.Driver.driverId}" class="flex items-center gap-3 hover:text-electric">
+              ${photoMarkup({ wikiUrl: r.Driver.url, initials, color, size: "xs" })}
+              <div>
+                <div class="font-display font-bold uppercase tracking-tight">${r.Driver.code ?? r.Driver.familyName.slice(0, 3).toUpperCase()}</div>
+                <div class="font-mono text-[10px] text-fg-subtle">${r.Driver.givenName} ${r.Driver.familyName}</div>
+              </div>
+            </a>
+          </td>
+          <td class="px-3 py-2.5 font-mono text-xs text-fg-muted hidden md:table-cell">${r.Constructor.name}</td>
+          <td class="px-3 py-2.5 text-right font-mono tabular-nums">${r.grid}</td>
+          <td class="px-3 py-2.5 text-right font-mono text-sm tabular-nums">${r.Time?.time ?? r.status}</td>
+          <td class="px-3 py-2.5 text-right font-mono font-bold text-warning tabular-nums">${r.points}</td>
+        </tr>
+      `;
+    }
+    html += "</tbody></table></div>";
+    wrap.innerHTML = html;
+    hydratePhotos(wrap);
+  }
+
+  async function loadReplay(): Promise<void> {
+    const [resultsSettled, lapsSettled, pitsSettled] = await Promise.allSettled([
+      swr<JolpicaRace | null>(() => getRaceResults("current", "last"), {
+        key: "race-center:last-results",
+        onCached: (race) => race && (renderHeaderReplay(race), renderPodium(race), renderReplayResults(race)),
+        onFresh: (race) => race && (renderHeaderReplay(race), renderPodium(race), renderReplayResults(race)),
+        onError: (err) => console.warn("[replay] results", err),
+      }),
+      swr<JolpicaRace | null>(() => getRaceLaps("current", "last"), {
+        key: "race-center:last-laps",
+        onCached: () => { /* chart needs both results + laps; rendered below */ },
+        onFresh: () => { /* same */ },
+        onError: (err) => console.warn("[replay] laps", err),
+      }),
+      swr<JolpicaRace | null>(() => getPitStops("current", "last"), {
+        key: "race-center:last-pits",
+        onCached: () => { /* same */ },
+        onFresh: () => { /* same */ },
+        onError: (err) => console.warn("[replay] pits", err),
+      }),
+    ]);
+
+    const race = resultsSettled.status === "fulfilled" ? resultsSettled.value : null;
+    const lapsRace = lapsSettled.status === "fulfilled" ? lapsSettled.value : null;
+    const pitsRace = pitsSettled.status === "fulfilled" ? pitsSettled.value : null;
+
+    if (race && lapsRace?.Laps?.length) {
+      renderPositionChart(race, lapsRace.Laps);
+    }
+    if (race) {
+      renderPitTimeline(race, pitsRace);
+    }
+
+    staggerReveal(document.querySelectorAll<HTMLElement>("#replay-mode .reveal"), { delay: 60, stagger: 100 });
+  }
+
+  /* ============================================================
+     BOOTSTRAP
+     ============================================================ */
+  async function boot(): Promise<void> {
+    mode = await probeMode();
+    if (mode === "live") {
+      showLiveMode();
+      tickLive();
+      setInterval(tickLive, LIVE_REFRESH_MS);
+    } else {
+      showReplayMode();
+      await loadReplay();
+    }
+    // Re-probe periodically — pick up the moment a session goes live
+    setInterval(async () => {
+      const newMode = await probeMode();
+      if (newMode !== mode) {
+        mode = newMode;
+        if (mode === "live") { showLiveMode(); tickLive(); }
+        else { showReplayMode(); loadReplay(); }
+      }
+    }, MODE_PROBE_MS);
+  }
+
+  boot();
+</script>

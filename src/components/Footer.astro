@@ -1,0 +1,58 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="mt-16 border-t border-track/70 bg-surface-dim">
+  <div class="mx-auto w-full max-w-[1440px] px-4 md:px-16 py-12">
+    <div class="grid md:grid-cols-[1.5fr_1fr_1fr] gap-10">
+      <div>
+        <div class="flex items-center gap-3 mb-4">
+          <span class="flex h-9 w-9 items-center justify-center bg-racing clip-chamfer-tr">
+            <span class="font-display font-extrabold text-bg text-lg">F1</span>
+          </span>
+          <span class="font-display text-xl font-extrabold tracking-tight">
+            VELOCITY <span class="text-racing">PRIME</span>
+          </span>
+        </div>
+        <p class="font-display text-lg font-bold uppercase tracking-tight leading-snug max-w-md">
+          From lights out to chequered flag.
+        </p>
+        <p class="text-sm text-fg-muted leading-relaxed mt-3 max-w-md">
+          Every lap. Every stint. Every team. The paddock, the pit wall and the
+          telemetry — in one place, built for the people who watch every session.
+        </p>
+      </div>
+
+      <div>
+        <div class="font-mono text-[11px] uppercase tracking-[0.25em] text-fg-subtle mb-4">The Paddock</div>
+        <ul class="space-y-2.5 text-sm font-medium">
+          <li><a href="/" class="hover:text-racing transition-colors">Apex Dashboard</a></li>
+          <li><a href="/live" class="hover:text-racing transition-colors">Live Timing</a></li>
+          <li><a href="/drivers" class="hover:text-racing transition-colors">Drivers & Teams</a></li>
+          <li><a href="/standings" class="hover:text-racing transition-colors">Standings</a></li>
+          <li><a href="/calendar" class="hover:text-racing transition-colors">Calendar</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="font-mono text-[11px] uppercase tracking-[0.25em] text-fg-subtle mb-4">Pit Wall</div>
+        <ul class="space-y-2.5 text-sm font-medium">
+          <li><a href="/calendar" class="hover:text-racing transition-colors">Next Race</a></li>
+          <li><a href="/standings" class="hover:text-racing transition-colors">Championship Fight</a></li>
+          <li><a href="/live" class="hover:text-racing transition-colors">Track Map</a></li>
+          <li>
+            <span class="inline-flex items-center gap-2 text-fg-subtle">
+              <span class="live-dot"></span>
+              <span class="font-mono text-[11px] uppercase tracking-[0.2em]">Always live</span>
+            </span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="mt-12 pt-6 border-t border-track/50 flex flex-col md:flex-row md:items-center justify-between gap-3 text-[10px] text-fg-subtle font-mono uppercase tracking-[0.2em]">
+      <div>© {year} Velocity Prime</div>
+      <div>F1, Formula 1, FIA and related marks are trademarks of their respective owners</div>
+    </div>
+  </div>
+</footer>
